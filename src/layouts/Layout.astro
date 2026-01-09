@@ -25,22 +25,19 @@ const { title } = Astro.props;
 </html>
 <style is:global>
 	:root {
-		--bg-color: #f8fafc;
-		--surface-color: #ffffff;
-		--text-primary: #1e293b;
-		--text-secondary: #64748b;
-		--accent-color: #3b82f6;
-		--accent-hover: #2563eb;
-		--border-color: #e2e8f0;
-		--shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-		--shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-		--shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-		--radius: 12px;
+		--bg-color: #f0f2f5;
+		--glass-surface: rgba(255, 255, 255, 0.7);
+		--glass-border: rgba(255, 255, 255, 0.5);
+		--text-primary: #0f172a;
+		--text-secondary: #475569;
+		--accent-color: #6366f1; /* Indigo */
+		--shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+		--radius: 16px;
 	}
 
 	html {
 		font-family: 'Inter', system-ui, sans-serif;
-		background: var(--bg-color);
+		background: #ffffff;
 		color: var(--text-primary);
 		-webkit-font-smoothing: antialiased;
 	}
@@ -49,6 +46,16 @@ const { title } = Astro.props;
 		margin: 0;
 		padding: 0;
 		min-height: 100vh;
+		background: 
+			radial-gradient(at 40% 20%, hsla(28,100%,74%,1) 0px, transparent 50%),
+			radial-gradient(at 80% 0%, hsla(189,100%,56%,1) 0px, transparent 50%),
+			radial-gradient(at 0% 50%, hsla(340,100%,76%,1) 0px, transparent 50%),
+			radial-gradient(at 80% 50%, hsla(240,100%,70%,1) 0px, transparent 50%),
+			radial-gradient(at 0% 100%, hsla(22,100%,77%,1) 0px, transparent 50%),
+			radial-gradient(at 80% 100%, hsla(242,100%,70%,1) 0px, transparent 50%),
+			radial-gradient(at 0% 0%, hsla(343,100%,76%,1) 0px, transparent 50%);
+		background-color: #f3f4f6;
+		background-attachment: fixed; /* Parallax effect */
 		line-height: 1.6;
 	}
 
