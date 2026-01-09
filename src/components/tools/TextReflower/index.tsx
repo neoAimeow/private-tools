@@ -39,36 +39,32 @@ export default function TextReflower() {
 
     // 1. Merge Lines (Sophisticated Logic)
     if (options.mergeLines) {
-      // Step A: Preserve double newlines (paragraphs)
+      // Step A: Pre-clean trailing spaces (Crucial for regex detection)
+      text = text.replace(/[ \t]+$/gm, '');
+
+      // Step B: Preserve double newlines (paragraphs)
       text = text.replace(/\n\s*\n/g, '___PARAGRAPH___');
 
-      // Step A.5: PROTECT BULLET POINTS
-      // If a line starts with a bullet (•, -, *), its newline should likely NOT be merged.
-      // We assume bullet items are self-contained lines or at least shouldn't be merged into the next start-of-line.
-      // Regex: Start of line -> optional space -> bullet -> content -> Newline
-      // We replace the Newline with a special marker that won't be eaten by Step B.
-      text = text.replace(/^([ \t]*[•●▪\-*].*?)\n/gm, '$1___HARD_BREAK___\n');
+      // Step C: PROTECT BULLET POINTS (Robust Placeholder Strategy)
+      // If a line starts with a bullet, we temporarily rename its newline 
+      // so the merge logic can't touch it.
+      text = text.replace(/^([ \t]*[•●▪\-*].*?)\n/gm, '$1___KEEP_NEWLINE___');
       
-      // Step B: Replace single newlines
+      // Step D: Replace single newlines
       // Handle hyphens: "multi-\nline" -> "multi-line"
       text = text.replace(/(\w)-\n(\w)/g, '$1$2');
+      
       // Handle normal breaks: "word\nword" -> "word word"
-      // Note: We use lookbehind to ensure we don't eat our protected break (though simple regex wouldn't match ___HARD_BREAK___ as punctuation)
-      // Actually, our regex only ignores if prev char is punctuation. ___HARD_BREAK___ ends with _, which is \w.
-      // So we need to be careful. The previous line now ends with ___HARD_BREAK___.
-      // Let's just exclude lines ending with ___HARD_BREAK___ from merging.
+      // Only merge if line doesn't end with punctuation.
+      // (The lookbehind is redundant if we handle the KEEP_NEWLINE strategy well, 
+      // but we keep the punctuation check for normal text)
+      text = text.replace(/(?<![。！？\.\!\?])\n/g, ' '); 
       
-      // Simplified: Just match newlines that are NOT preceded by ___HARD_BREAK___
-      // JS Regex lookbehind for negative match
-      text = text.replace(/(?<![。！？\.\!\?]|___HARD_BREAK___)\n/g, ' '); 
-      
-      // Step B.5: Restore protected bullet breaks
-      text = text.replace(/___HARD_BREAK___/g, '');
-
-      // Step C: Restore paragraphs
+      // Step E: Restore protected items
+      text = text.replace(/___KEEP_NEWLINE___/g, '\n');
       text = text.replace(/___PARAGRAPH___/g, '\n\n');
       
-      // Step D: Chinese character merge
+      // Step F: Chinese character merge
       text = text.replace(/([\u4e00-\u9fa5])\s+([\u4e00-\u9fa5])/g, '$1$2');
     }
 
