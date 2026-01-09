@@ -1,0 +1,15 @@
+[
+  {
+    "category": "Daily",
+    "links": [
+      { "title": "Google", "url": "https://google.com", "desc": "Search engine" },
+      { "title": "GitHub", "url": "https://github.com", "desc": "Code hosting" }
+    ]
+  },
+  {
+    "category": "Tools",
+    "links": [
+      { "title": "JSON Formatter", "url": "/tools/json", "desc": "Format and validate JSON" }
+    ]
+  }
+]

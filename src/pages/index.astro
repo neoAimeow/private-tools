@@ -1,0 +1,77 @@
+---
+import Layout from '../layouts/Layout.astro';
+import NavCard from '../components/NavCard/index.astro';
+import links from '../content/links.json';
+
+// Type definition for the JSON data
+type LinkItem = {
+  title: string;
+  url: string;
+  desc: string;
+};
+
+type Category = {
+  category: string;
+  links: LinkItem[];
+};
+
+const data = links as Category[];
+---
+
+<Layout title="My Dashboard">
+  <main class="container">
+    <header class="header">
+      <h1>Dashboard</h1>
+      <p>My personal navigation & tools</p>
+    </header>
+
+    {data.map((cat) => (
+      <section class="category">
+        <h2>{cat.category}</h2>
+        <div class="grid">
+          {cat.links.map((link) => (
+            <NavCard {...link} />
+          ))}
+        </div>
+      </section>
+    ))}
+  </main>
+</Layout>
+
+<style>
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+  
+  .header {
+    margin-bottom: 3rem;
+    text-align: center;
+    
+    h1 {
+      margin: 0;
+      font-size: 2.5rem;
+    }
+    p {
+      color: #666;
+    }
+  }
+
+  .category {
+    margin-bottom: 3rem;
+    
+    h2 {
+      border-bottom: 2px solid #eee;
+      padding-bottom: 0.5rem;
+      margin-bottom: 1.5rem;
+      color: #333;
+    }
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+</style>

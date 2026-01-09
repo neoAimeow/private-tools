@@ -1,0 +1,16 @@
+---
+import styles from './style.module.scss';
+
+interface Props {
+  title: string;
+  url: string;
+  desc: string;
+}
+
+const { title, url, desc } = Astro.props;
+---
+
+<a href={url} class={styles.card} target={url.startsWith('http') ? "_blank" : "_self"}>
+  <div class={styles.title}>{title}</div>
+  <div class={styles.desc}>{desc}</div>
+</a>
