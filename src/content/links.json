@@ -20,7 +20,8 @@
     "links": [
       { "title": "Text Reflower", "url": "/tools/text-reflower", "desc": "Fix PDF line breaks & formatting" },
       { "title": "JSON Formatter", "url": "/tools/json", "desc": "Format and validate JSON" },
-      { "title": "App Resource Cropper", "url": "/tools/app-resource-cropper", "desc": "Generate App Store assets" }
+      { "title": "App Resource Cropper", "url": "/tools/app-resource-cropper", "desc": "Generate App Store assets" },
+      { "title": "Solvin App Tools", "url": "/tools/app-generator", "desc": "ASO Gen & App Management" }
     ]
   }
 ]

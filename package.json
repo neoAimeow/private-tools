@@ -9,10 +9,13 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/node": "^9.5.1",
     "@astrojs/react": "^4.4.2",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "astro": "^5.16.7",
+    "firebase": "^12.7.0",
+    "firebase-admin": "^13.6.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
   },

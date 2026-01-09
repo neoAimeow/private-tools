@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import NavCard from '../components/NavCard/index.astro';
+import GlobalSettings from '../components/GlobalSettings/index.tsx';
 import links from '../content/links.json';
 
 type LinkItem = {
@@ -25,7 +26,10 @@ const data = links as Category[];
           <div class="logo">M</div>
           <h1>My Space</h1>
         </div>
-        <div class="status-dot" title="System Online"></div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+             <GlobalSettings client:load />
+             <div class="status-dot" title="System Online"></div>
+        </div>
       </div>
       
       <div class="search-container">
