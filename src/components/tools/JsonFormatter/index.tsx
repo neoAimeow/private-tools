@@ -31,7 +31,7 @@ export default function JsonFormatter() {
   return (
     <div className={styles.container}>
       <div className={styles.pane}>
-        <label>Input JSON</label>
+        <header>Input JSON</header>
         <textarea 
           value={input} 
           onChange={(e) => setInput(e.target.value)}
@@ -46,11 +46,11 @@ export default function JsonFormatter() {
       </div>
 
       <div className={styles.pane}>
-        <label>Output</label>
+        <header>Output</header>
         <textarea 
           readOnly 
           value={error ? `Error: ${error}` : output} 
-          style={{ borderColor: error ? '#dc3545' : '#ccc', color: error ? '#dc3545' : 'inherit' }}
+          style={{ borderColor: error ? '#dc3545' : 'inherit', color: error ? '#ff6b6b' : 'inherit' }}
         />
       </div>
     </div>

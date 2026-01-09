@@ -25,19 +25,37 @@ const { title } = Astro.props;
 </html>
 <style is:global>
 	:root {
-		--bg-color: #f0f2f5;
-		--glass-surface: rgba(255, 255, 255, 0.7);
-		--glass-border: rgba(255, 255, 255, 0.5);
+		/* Base Colors */
+		--bg-page: #f8fafc;
+		--bg-card: #ffffff;
+		--bg-input: #f1f5f9;
+		
+		/* Text Colors */
 		--text-primary: #0f172a;
-		--text-secondary: #475569;
-		--accent-color: #6366f1; /* Indigo */
-		--shadow-glass: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
-		--radius: 16px;
+		--text-secondary: #64748b;
+		--text-tertiary: #94a3b8;
+		
+		/* Brand Colors */
+		--accent-primary: #000000; /* Minimalist Black */
+		--accent-highlight: #3b82f6;
+		
+		/* Borders & Shadows */
+		--border-light: #e2e8f0;
+		--border-hover: #cbd5e1;
+		--shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.05);
+		--shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.04);
+		--shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+		--shadow-float: 0 20px 25px -5px rgba(0,0,0,0.08), 0 10px 10px -5px rgba(0,0,0,0.03);
+		
+		/* Layout */
+		--radius-sm: 8px;
+		--radius-md: 12px;
+		--radius-lg: 16px;
 	}
 
 	html {
-		font-family: 'Inter', system-ui, sans-serif;
-		background: #ffffff;
+		font-family: 'Inter', system-ui, -apple-system, sans-serif;
+		background-color: var(--bg-page);
 		color: var(--text-primary);
 		-webkit-font-smoothing: antialiased;
 	}
@@ -46,25 +64,23 @@ const { title } = Astro.props;
 		margin: 0;
 		padding: 0;
 		min-height: 100vh;
-		background: 
-			radial-gradient(at 40% 20%, hsla(28,100%,74%,1) 0px, transparent 50%),
-			radial-gradient(at 80% 0%, hsla(189,100%,56%,1) 0px, transparent 50%),
-			radial-gradient(at 0% 50%, hsla(340,100%,76%,1) 0px, transparent 50%),
-			radial-gradient(at 80% 50%, hsla(240,100%,70%,1) 0px, transparent 50%),
-			radial-gradient(at 0% 100%, hsla(22,100%,77%,1) 0px, transparent 50%),
-			radial-gradient(at 80% 100%, hsla(242,100%,70%,1) 0px, transparent 50%),
-			radial-gradient(at 0% 0%, hsla(343,100%,76%,1) 0px, transparent 50%);
-		background-color: #f3f4f6;
-		background-attachment: fixed; /* Parallax effect */
-		line-height: 1.6;
+		/* Subtle noise texture for texture */
+		background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+		background-attachment: fixed;
 	}
 
 	* {
 		box-sizing: border-box;
 	}
 
-	h1, h2, h3 {
+	h1, h2, h3, h4 {
 		color: var(--text-primary);
+		letter-spacing: -0.02em;
 		margin: 0;
+	}
+	
+	p {
+		color: var(--text-secondary);
+		line-height: 1.6;
 	}
 </style>

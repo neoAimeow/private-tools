@@ -9,12 +9,12 @@ interface Props {
 
 const { title, url, desc } = Astro.props;
 
-// Use Google's favicon service for a reliable icon source
+// Helper: Better Google Favicon URL with higher resolution
 const getFavicon = (url: string) => {
-  if (url.startsWith('/')) return '/favicon.svg'; // Local links
+  if (url.startsWith('/')) return '/favicon.svg'; 
   try {
     const domain = new URL(url).hostname;
-    return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+    return `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
   } catch (e) {
     return '/favicon.svg';
   }
@@ -24,8 +24,10 @@ const iconUrl = getFavicon(url);
 ---
 
 <a href={url} class={styles.card} target={url.startsWith('http') ? "_blank" : "_self"}>
-  <div class={styles.icon}>
-    <img src={iconUrl} alt={title} loading="lazy" />
+  <div class={styles.header}>
+    <div class={styles.icon}>
+      <img src={iconUrl} alt={title} loading="lazy" />
+    </div>
   </div>
   <div class={styles.content}>
     <div class={styles.title}>{title}</div>

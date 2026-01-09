@@ -2,7 +2,7 @@
   display: flex;
   gap: 1.5rem;
   height: calc(100vh - 200px);
-  min-height: 500px;
+  min-height: 600px;
   
   @media (max-width: 768px) {
     flex-direction: column;
@@ -14,38 +14,37 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  overflow: hidden;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
+  overflow: hidden;
 
-  label {
+  header {
     padding: 0.75rem 1rem;
-    font-size: 0.875rem;
+    font-size: 0.8rem;
     font-weight: 600;
-    color: var(--text-secondary);
-    background: #f1f5f9;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-tertiary);
+    background: var(--bg-page);
+    border-bottom: 1px solid var(--border-light);
   }
 
   textarea {
     flex: 1;
-    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', 'Droid Sans Mono', 'Source Code Pro', monospace;
-    font-size: 14px;
-    padding: 1rem;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', monospace;
+    font-size: 13px;
+    padding: 1.5rem;
     border: none;
     resize: none;
-    background: #1e293b; // Dark theme for code
-    color: #e2e8f0;
-    line-height: 1.5;
+    background: #1e1e1e; /* Dark editor always for JSON */
+    color: #d4d4d4;
+    line-height: 1.6;
+    outline: none;
 
-    &:focus {
-      outline: none;
-      background: #0f172a;
+    &::placeholder {
+      color: #6e7681;
     }
   }
 }
@@ -62,41 +61,32 @@
   }
 
   button {
-    background: var(--surface-color);
+    background: var(--bg-card);
     color: var(--text-primary);
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-light);
     padding: 0.75rem 1rem;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
-    font-weight: 500;
-    font-size: 0.875rem;
+    font-weight: 600;
+    font-size: 0.9rem;
     transition: all 0.2s;
     box-shadow: var(--shadow-sm);
-    white-space: nowrap;
 
     &:hover {
-      background: #f8fafc;
-      border-color: var(--accent-color);
-      color: var(--accent-color);
+      border-color: var(--border-hover);
       transform: translateY(-1px);
       box-shadow: var(--shadow-md);
     }
 
-    &.primary {
-      background: var(--accent-color);
-      color: white;
-      border-color: var(--accent-color);
-
-      &:hover {
-        background: var(--accent-hover);
-      }
+    &:active {
+      transform: translateY(0);
     }
-
+    
     &.clear {
-      color: #ef4444;
+       color: #ef4444;
       &:hover {
-        border-color: #ef4444;
         background: #fef2f2;
+        border-color: #fecaca;
       }
     }
   }
