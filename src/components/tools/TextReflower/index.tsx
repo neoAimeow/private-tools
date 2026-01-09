@@ -25,35 +25,54 @@ export default function TextReflower() {
 
     let text = input;
 
+    // 1.5 Fix Sticky Punctuation & CamelCase (Safe)
+    // "word.Word" -> "word. Word"
+    text = text.replace(/([a-z0-9])([\.?!])([A-Z])/g, '$1$2 $3');
+    
+    // Fix "controlsWhether" -> "controls Whether", but PROTECT brands like "NexBlock"
+    // Strategy: Hide brands -> Split CamelCase -> Restore brands
+    const brands = ['NexBlock', 'Nextris', 'YouTube', 'GitHub', 'PayPal', 'JavaScript', 'TypeScript', 'iPhone', 'iPad', 'Endless', 'Level'];
+    // 1. Placeholder
+    brands.forEach((brand, index) => {
+      text = text.replace(new RegExp(brand, 'g'), `___BRAND_${index}___`);
+    });
+    // 2. Split CamelCase (lowercase followed by uppercase)
+    text = text.replace(/([a-z])([A-Z])/g, '$1 $2');
+    // 3. Restore
+    brands.forEach((brand, index) => {
+      text = text.replace(new RegExp(`___BRAND_${index}___`, 'g'), brand);
+    });
+
     // 1. Merge Lines (Sophisticated Logic)
-    // If a line doesn't end with a period/question mark/exclamation, merge it with next.
     if (options.mergeLines) {
-      // Logic: Replace newline with space if prev line doesn't end with punctuation
-      // AND next line doesn't look like a new paragraph (indentation or empty line)
-      
       // Step A: Preserve double newlines (paragraphs)
       text = text.replace(/\n\s*\n/g, '___PARAGRAPH___');
       
-      // Step B: Replace single newlines with space, handling hyphens
-      // "multi-\nline" -> "multi-line"
+      // Step B: Replace single newlines
+      // Handle hyphens: "multi-\nline" -> "multi-line"
       text = text.replace(/(\w)-\n(\w)/g, '$1$2');
-      // "word\nword" -> "word word" (English) or "字\n字" -> "字字" (Chinese)
+      // Handle normal breaks: "word\nword" -> "word word"
       text = text.replace(/(?<![。！？\.\!\?])\n/g, ' '); 
       
       // Step C: Restore paragraphs
       text = text.replace(/___PARAGRAPH___/g, '\n\n');
       
-      // Step D: Chinese character merge (remove space between Chinese chars)
+      // Step D: Chinese character merge
       text = text.replace(/([\u4e00-\u9fa5])\s+([\u4e00-\u9fa5])/g, '$1$2');
     }
 
     // 2. Clean Spaces
     if (options.cleanSpaces) {
-      // Multiple spaces -> single space
       text = text.replace(/[ \t]+/g, ' ');
-      // Remove spaces at start/end of lines
       text = text.replace(/^\s+|\s+$/gm, '');
     }
+
+    // NEW: Format Lists (Bullet Points)
+    // Ensure bullets start on a new line
+    // Matches: space + bullet + space
+    text = text.replace(/([^\n])\s*([•●▪])/g, '$1\n$2 ');
+    // Fix "Title: • Item" -> "Title:\n• Item"
+    text = text.replace(/([:：])\s*([•●▪])/g, '$1\n$2');
 
     // 3. Smart Spacing (Pangu - simplified)
     if (options.smartSpacing) {
