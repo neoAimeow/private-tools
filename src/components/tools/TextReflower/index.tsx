@@ -8,7 +8,8 @@ export default function TextReflower() {
     mergeLines: true,     // Merge broken lines (PDF style)
     cleanSpaces: true,    // Fix multiple spaces
     smartSpacing: true,   // Pangu (Chinese-English spacing)
-    fixPunctuation: false // Convert en punctuation to cn
+    fixPunctuation: false, // Convert en punctuation to cn
+    splitCamelCase: false  // Fix "controlsWhether" -> "controls Whether"
   });
   const [copied, setCopied] = useState(false);
 
@@ -25,23 +26,16 @@ export default function TextReflower() {
 
     let text = input;
 
-    // 1.5 Fix Sticky Punctuation & CamelCase (Safe)
+    // 1.5 Fix Sticky Punctuation (Always Safe)
     // "word.Word" -> "word. Word"
     text = text.replace(/([a-z0-9])([\.?!])([A-Z])/g, '$1$2 $3');
     
-    // Fix "controlsWhether" -> "controls Whether", but PROTECT brands like "NexBlock"
-    // Strategy: Hide brands -> Split CamelCase -> Restore brands
-    const brands = ['NexBlock', 'Nextris', 'YouTube', 'GitHub', 'PayPal', 'JavaScript', 'TypeScript', 'iPhone', 'iPad', 'Endless', 'Level'];
-    // 1. Placeholder
-    brands.forEach((brand, index) => {
-      text = text.replace(new RegExp(brand, 'g'), `___BRAND_${index}___`);
-    });
-    // 2. Split CamelCase (lowercase followed by uppercase)
-    text = text.replace(/([a-z])([A-Z])/g, '$1 $2');
-    // 3. Restore
-    brands.forEach((brand, index) => {
-      text = text.replace(new RegExp(`___BRAND_${index}___`, 'g'), brand);
-    });
+    // 1.6 Fix CamelCase Sticky Words (Optional)
+    // "controlsWhether" -> "controls Whether"
+    // This is optional because it breaks legitimate brands like "iPhone", "eBay", "JavaScript"
+    if (options.splitCamelCase) {
+      text = text.replace(/([a-z])([A-Z])/g, '$1 $2');
+    }
 
     // 1. Merge Lines (Sophisticated Logic)
     if (options.mergeLines) {
@@ -158,6 +152,14 @@ export default function TextReflower() {
               onChange={e => setOptions({...options, cleanSpaces: e.target.checked})}
             />
             Clean Whitespace
+          </label>
+          <label title="Splits joined words like 'controlsWhether' -> 'controls Whether'. Warning: Breaks 'iPhone' -> 'i Phone'">
+            <input 
+              type="checkbox" 
+              checked={options.splitCamelCase} 
+              onChange={e => setOptions({...options, splitCamelCase: e.target.checked})}
+            />
+            Split Joined Words (CamelCase)
           </label>
           <label>
             <input 
