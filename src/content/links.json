@@ -7,11 +7,19 @@
     ]
   },
   {
+    "category": "Dev & Monetization",
+    "links": [
+      { "title": "Apple Developer", "url": "https://developer.apple.com", "desc": "Resources for building Apple apps" },
+      { "title": "RevenueCat", "url": "https://revenuecat.com", "desc": "In-App Subscriptions Infrastructure" },
+      { "title": "AdMob", "url": "https://admob.google.com", "desc": "Mobile App Monetization" },
+      { "title": "PingPong", "url": "https://pingpongx.com", "desc": "Cross-border payments for business" }
+    ]
+  },
+  {
     "category": "Tools",
     "links": [
       { "title": "Text Reflower", "url": "/tools/text-reflower", "desc": "Fix PDF line breaks & formatting" },
-      { "title": "JSON Formatter", "url": "/tools/json", "desc": "Format and validate JSON" },
-      { "title": "App Resource Cropper", "url": "/tools/app-resource-cropper", "desc": "Generate App Store assets" }
+      { "title": "JSON Formatter", "url": "/tools/json", "desc": "Format and validate JSON" }
     ]
   }
 ]
