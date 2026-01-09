@@ -20,101 +20,313 @@ const data = links as Category[];
 <Layout title="Dashboard">
   <main class="container">
     <header class="header">
-      <div class="brand">
-        <h1>Workspace</h1>
-        <div class="badge">PRO</div>
+      <div class="top-row">
+        <div class="brand">
+          <div class="logo">M</div>
+          <h1>My Space</h1>
+        </div>
+        <div class="status-dot" title="System Online"></div>
       </div>
-      <p>Personal tools & navigation center</p>
+      
+      <div class="search-container">
+        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" id="search-input" placeholder="Search tools, docs, or links... (Press '/')" autocomplete="off" />
+        <div class="kbd-shortcut">/</div>
+      </div>
     </header>
 
-    <div class="content-wrapper">
+    <div id="content-wrapper" class="content-wrapper">
       {data.map((cat) => (
-        <section class="category">
+        <section class="category-section" data-category={cat.category.toLowerCase()}>
           <div class="cat-header">
             <h2>{cat.category}</h2>
+            <span class="badge">{cat.links.length}</span>
             <span class="line"></span>
           </div>
-          <div class="grid">
+          <!-- Spotlight Grid Wrapper -->
+          <div class="grid spotlight-group">
             {cat.links.map((link) => (
-              <NavCard {...link} />
+              <div class="card-wrapper" data-keywords={`${link.title} ${link.desc}`.toLowerCase()}>
+                <NavCard {...link} />
+              </div>
             ))}
           </div>
         </section>
       ))}
+      
+      <div id="no-results" class="hidden">
+        <p>No matching results found.</p>
+        <button id="clear-search">Clear Search</button>
+      </div>
     </div>
   </main>
 </Layout>
 
+<script>
+  // 1. Spotlight Effect
+  const grids = document.querySelectorAll('.spotlight-group');
+  
+  grids.forEach((grid) => {
+    grid.addEventListener('mousemove', (e) => {
+      const rect = (grid as HTMLElement).getBoundingClientRect();
+      const x = (e as MouseEvent).clientX - rect.left;
+      const y = (e as MouseEvent).clientY - rect.top;
+      (grid as HTMLElement).style.setProperty('--mouse-x', `${x}px`);
+      (grid as HTMLElement).style.setProperty('--mouse-y', `${y}px`);
+    });
+  });
+
+  // 2. Search Functionality
+  const searchInput = document.getElementById('search-input') as HTMLInputElement;
+  const cardWrappers = document.querySelectorAll('.card-wrapper');
+  const categories = document.querySelectorAll('.category-section');
+  const noResults = document.getElementById('no-results');
+  const clearBtn = document.getElementById('clear-search');
+
+  function performSearch() {
+    const query = searchInput.value.toLowerCase().trim();
+    let hasResults = false;
+
+    categories.forEach((catSection) => {
+      let hasVisibleCardsInCat = false;
+      const cards = catSection.querySelectorAll('.card-wrapper');
+
+      cards.forEach((card) => {
+        const keywords = (card as HTMLElement).dataset.keywords || '';
+        const isMatch = keywords.includes(query);
+        if (isMatch) {
+          (card as HTMLElement).style.display = 'block';
+          hasVisibleCardsInCat = true;
+          hasResults = true;
+        } else {
+          (card as HTMLElement).style.display = 'none';
+        }
+      });
+
+      // Hide empty categories
+      (catSection as HTMLElement).style.display = hasVisibleCardsInCat ? 'block' : 'none';
+    });
+
+    if (noResults) {
+      noResults.style.display = hasResults ? 'none' : 'flex';
+    }
+  }
+
+  searchInput?.addEventListener('input', performSearch);
+  
+  clearBtn?.addEventListener('click', () => {
+    searchInput.value = '';
+    performSearch();
+    searchInput.focus();
+  });
+
+  // Keyboard shortcut '/'
+  document.addEventListener('keydown', (e) => {
+    if (e.key === '/' && document.activeElement !== searchInput) {
+      e.preventDefault();
+      searchInput?.focus();
+    }
+    if (e.key === 'Escape' && document.activeElement === searchInput) {
+      searchInput.blur();
+    }
+  });
+</script>
+
 <style>
+  /* Spotlight Core Variables */
+  .spotlight-group {
+    --mouse-x: -1000px;
+    --mouse-y: -1000px;
+    position: relative;
+  }
+
   .container {
     max-width: 1024px;
     margin: 0 auto;
-    padding: 5rem 2rem;
+    padding: 4rem 2rem;
   }
   
+  /* Header & Search */
   .header {
     margin-bottom: 4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
     
-    .brand {
+    .logo {
+      width: 40px;
+      height: 40px;
+      background: var(--text-primary);
+      color: var(--bg-page);
+      border-radius: 12px;
       display: flex;
       align-items: center;
-      gap: 1rem;
-      margin-bottom: 0.5rem;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.2rem;
+      box-shadow: var(--shadow-md);
     }
 
     h1 {
-      font-size: 2rem;
+      font-size: 1.5rem;
       font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+    70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  }
+
+  .search-container {
+    position: relative;
+    max-width: 600px;
+    width: 100%;
+    
+    .search-icon {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-tertiary);
+      pointer-events: none;
+    }
+
+    input {
+      width: 100%;
+      padding: 1rem 1rem 1rem 3rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 14px;
+      font-size: 1rem;
       color: var(--text-primary);
-      letter-spacing: -0.03em;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s;
+      outline: none;
+
+      &::placeholder {
+        color: var(--text-tertiary);
+      }
+
+      &:focus {
+        border-color: var(--accent-highlight);
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+      }
+    }
+
+    .kbd-shortcut {
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--bg-page);
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+      padding: 0.2rem 0.6rem;
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      font-family: monospace;
+      pointer-events: none;
+    }
+  }
+
+  /* Category Headers */
+  .category-section {
+    margin-bottom: 3.5rem;
+    animation: fadeIn 0.5s ease backwards;
+  }
+  
+  .cat-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+
+    h2 {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-secondary);
+      font-weight: 700;
     }
 
     .badge {
-      background: var(--text-primary);
-      color: white;
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      color: var(--text-tertiary);
       font-size: 0.7rem;
       padding: 0.1rem 0.4rem;
-      border-radius: 4px;
+      border-radius: 99px;
       font-weight: 600;
-      letter-spacing: 0.05em;
     }
     
-    p {
-      font-size: 1.1rem;
-      color: var(--text-secondary);
-      max-width: 500px;
+    .line {
+      height: 1px;
+      background: var(--border-light);
+      flex: 1;
+      opacity: 0.5;
     }
   }
 
-  .category {
-    margin-bottom: 4rem;
-    
-    .cat-header {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-
-      h2 {
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--text-tertiary);
-        font-weight: 600;
-        white-space: nowrap;
-      }
-      
-      .line {
-        height: 1px;
-        background: var(--border-light);
-        flex: 1;
-      }
-    }
-  }
-
+  /* Grid */
   .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 1.5rem;
+    gap: 1.25rem;
+  }
+
+  #no-results {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4rem 0;
+    gap: 1rem;
+    color: var(--text-secondary);
+    
+    &.hidden {
+      display: none !important;
+    }
+
+    button {
+      background: transparent;
+      border: 1px solid var(--border-light);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--accent-highlight);
+      font-weight: 600;
+      
+      &:hover {
+        background: var(--bg-card);
+      }
+    }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 </style>
