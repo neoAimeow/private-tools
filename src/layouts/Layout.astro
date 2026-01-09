@@ -13,6 +13,9 @@ const { title } = Astro.props;
 		<meta name="description" content="Personal Dashboard" />
 		<meta name="viewport" content="width=device-width" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
 	</head>
@@ -22,17 +25,39 @@ const { title } = Astro.props;
 </html>
 <style is:global>
 	:root {
-		--bg-color: #f6f8fa;
-		--text-color: #24292f;
+		--bg-color: #f8fafc;
+		--surface-color: #ffffff;
+		--text-primary: #1e293b;
+		--text-secondary: #64748b;
+		--accent-color: #3b82f6;
+		--accent-hover: #2563eb;
+		--border-color: #e2e8f0;
+		--shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+		--shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+		--shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+		--radius: 12px;
 	}
+
 	html {
-		font-family: system-ui, sans-serif;
+		font-family: 'Inter', system-ui, sans-serif;
 		background: var(--bg-color);
-		color: var(--text-color);
+		color: var(--text-primary);
+		-webkit-font-smoothing: antialiased;
 	}
+
 	body {
 		margin: 0;
 		padding: 0;
 		min-height: 100vh;
+		line-height: 1.6;
+	}
+
+	* {
+		box-sizing: border-box;
+	}
+
+	h1, h2, h3 {
+		color: var(--text-primary);
+		margin: 0;
 	}
 </style>
