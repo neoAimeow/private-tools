@@ -9,6 +9,7 @@
   {
     "category": "Tools",
     "links": [
+      { "title": "Text Reflower", "url": "/tools/text-reflower", "desc": "Fix PDF line breaks & formatting" },
       { "title": "JSON Formatter", "url": "/tools/json", "desc": "Format and validate JSON" }
     ]
   }

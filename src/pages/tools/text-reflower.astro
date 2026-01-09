@@ -1,0 +1,19 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import TextReflower from '../../components/tools/TextReflower/index.tsx';
+---
+
+<Layout title="Text Reflower - My Dashboard">
+  <main style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
+    <a href="/" style="display: inline-block; margin-bottom: 2rem; color: var(--text-secondary); text-decoration: none; font-weight: 500; transition: color 0.2s;">
+      &larr; Back to Dashboard
+    </a>
+    
+    <div style="margin-bottom: 2rem;">
+      <h1 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem; background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Text Reflower</h1>
+      <p style="color: var(--text-secondary); font-size: 1.1rem;">Fix broken lines from PDFs, clean whitespace, and improve readability automatically.</p>
+    </div>
+
+    <TextReflower client:load />
+  </main>
+</Layout>
