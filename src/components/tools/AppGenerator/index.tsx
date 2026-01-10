@@ -7,7 +7,10 @@ import { getGeminiConfig } from '../../../lib/config';
 
 // UI Components - Using standard HTML/Tailwind for cleaner custom layout
 import { Button } from "@/components/ui/button";
-import { Loader2, Sparkles, Save, Plus, Search, Smartphone, Apple, Play, Github, Globe, ExternalLink, ChevronRight, LayoutTemplate } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Loader2, Sparkles, Save, Plus, Search, Smartphone, Apple, Play, Github, LayoutTemplate, Lock, BookOpen, Star } from "lucide-react";
+
+// ... existing code ...
 
 interface AppData {
   id?: string;
@@ -42,8 +45,13 @@ export default function AppGenerator() {
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [generating, setGenerating] = useState(false);
-  
-  // Auth & Data Loading (Same logic as before, cleaner implementation)
+
+  // Repo Selection State
+  const [repoModalOpen, setRepoModalOpen] = useState(false);
+  const [repos, setRepos] = useState<any[]>([]);
+  const [loadingRepos, setLoadingRepos] = useState(false);
+
+  // Auth & Data Loading
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => { setUser(u); setAuthLoading(false); });
     return () => unsub();
@@ -106,6 +114,37 @@ export default function AppGenerator() {
           await updateDoc(doc(db, "solvin-apps", selectedAppId), { ...data, updatedAt: new Date().toISOString() });
       } catch (e) { alert(e); } finally { setLoading(false); }
   };
+
+
+  const fetchRepos = async () => {
+      const config = getGeminiConfig();
+      if (!config.githubToken) {
+          alert("Please set your GitHub Token in Settings first.");
+          return;
+      }
+      setLoadingRepos(true);
+      setRepoModalOpen(true);
+      try {
+          const res = await fetch('/api/list-repos', {
+              method: 'POST',
+              body: JSON.stringify({ token: config.githubToken })
+          });
+          const json = await res.json();
+          if (json.error) throw new Error(json.error);
+          setRepos(json.repos || []);
+      } catch (e) {
+          alert((e as Error).message);
+          setRepoModalOpen(false);
+      } finally {
+          setLoadingRepos(false);
+      }
+  };
+
+  const handleSelectRepo = (full_name: string) => {
+      setData({ ...data, localPath: full_name });
+      setRepoModalOpen(false);
+  };
+
 
   // Logic functions (Analyze/Generate) remain largely same, just calling them cleaner
   const analyzeProject = async () => {
@@ -235,10 +274,15 @@ export default function AppGenerator() {
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-medium text-zinc-500 ml-1">GitHub Repo</label>
-                                    <div className="relative">
-                                        <Github className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400"/>
-                                        <input value={data.localPath} onChange={e=>setData({...data, localPath: e.target.value})} 
-                                            className="w-full bg-zinc-50 border-0 rounded-lg pl-9 pr-3 py-2 text-zinc-700 font-mono text-xs focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-zinc-300" placeholder="username/repo"/>
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <Github className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400"/>
+                                            <input value={data.localPath} onChange={e=>setData({...data, localPath: e.target.value})} 
+                                                className="w-full bg-zinc-50 border-0 rounded-lg pl-9 pr-3 py-2 text-zinc-700 font-mono text-xs focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-zinc-300" placeholder="username/repo"/>
+                                        </div>
+                                        <Button variant="outline" size="sm" onClick={fetchRepos} className="h-[34px] px-3 bg-zinc-50 border-0 hover:bg-zinc-100 text-zinc-600">
+                                            <Search className="w-4 h-4" />
+                                        </Button>
                                     </div>
                                 </div>
                                 <div className="space-y-1.5">
@@ -324,6 +368,44 @@ export default function AppGenerator() {
                 </>
             )}
         </div>
+
+        <Dialog open={repoModalOpen} onOpenChange={setRepoModalOpen}>
+            <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle>Select Repository</DialogTitle>
+                    <DialogDescription>Choose a GitHub repository to analyze.</DialogDescription>
+                </DialogHeader>
+                <div className="flex-1 overflow-y-auto min-h-[300px] -mx-6 px-6">
+                    {loadingRepos ? (
+                        <div className="flex flex-col items-center justify-center h-40 space-y-3">
+                            <Loader2 className="w-8 h-8 animate-spin text-indigo-500"/>
+                            <p className="text-sm text-zinc-500">Fetching repositories...</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 gap-2 py-2">
+                            {repos.map((repo) => (
+                                <div key={repo.id} onClick={() => handleSelectRepo(repo.full_name)}
+                                    className="flex items-center justify-between p-3 rounded-lg border border-zinc-100 hover:bg-zinc-50 hover:border-indigo-200 cursor-pointer transition-all group">
+                                    <div className="flex items-center gap-3">
+                                        {repo.private ? <Lock className="w-4 h-4 text-zinc-400"/> : <BookOpen className="w-4 h-4 text-zinc-400"/>}
+                                        <div>
+                                            <div className="text-sm font-medium text-zinc-900 group-hover:text-indigo-600">{repo.full_name}</div>
+                                            {repo.description && <div className="text-xs text-zinc-500 truncate max-w-md">{repo.description}</div>}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-1 text-xs text-zinc-400">
+                                        <Star className="w-3 h-3"/> {repo.stargazers_count}
+                                    </div>
+                                </div>
+                            ))}
+                            {repos.length === 0 && (
+                                <div className="text-center py-10 text-zinc-500 text-sm">No repositories found.</div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
