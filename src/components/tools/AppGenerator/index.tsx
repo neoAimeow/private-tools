@@ -14,30 +14,7 @@ import { Loader2, Sparkles, Save, Plus, Search, Smartphone, Apple, Play, Github,
 
 // ... existing code ...
 
-const LANGUAGES = [
-  { code: 'en-US', name: 'English (US)', flag: '🇺🇸' },
-  { code: 'zh-CN', name: 'Chinese (Simplified)', flag: '🇨🇳' },
-  { code: 'zh-TW', name: 'Chinese (Traditional)', flag: '🇹🇼' },
-  { code: 'ja-JP', name: 'Japanese', flag: '🇯🇵' },
-  { code: 'ko-KR', name: 'Korean', flag: '🇰🇷' },
-  { code: 'es-ES', name: 'Spanish', flag: '🇪🇸' },
-  { code: 'fr-FR', name: 'French', flag: '🇫🇷' },
-  { code: 'de-DE', name: 'German', flag: '🇩🇪' },
-  { code: 'it-IT', name: 'Italian', flag: '🇮🇹' },
-  { code: 'pt-BR', name: 'Portuguese (Brazil)', flag: '🇧🇷' },
-  { code: 'ru-RU', name: 'Russian', flag: '🇷🇺' },
-  { code: 'ar', name: 'Arabic', flag: '🇸🇦' },
-  { code: 'hi', name: 'Hindi', flag: '🇮🇳' },
-  { code: 'id', name: 'Indonesian', flag: '🇮🇩' },
-  { code: 'th', name: 'Thai', flag: '🇹🇭' },
-  { code: 'vi', name: 'Vietnamese', flag: '🇻🇳' },
-  { code: 'tr', name: 'Turkish', flag: '🇹🇷' },
-  { code: 'nl', name: 'Dutch', flag: '🇳🇱' },
-  { code: 'pl', name: 'Polish', flag: '🇵🇱' },
-  { code: 'sv', name: 'Swedish', flag: '🇸🇪' },
-  { code: 'da', name: 'Danish', flag: '🇩🇰' },
-  { code: 'fi', name: 'Finnish', flag: '🇫🇮' }
-];
+import { LANGUAGES } from '../../../lib/constants';
 
 interface AppContent {
   promoText: string;
@@ -59,6 +36,7 @@ interface AppData {
   shortDescription: string;
   fullDescription: string;
   localizations?: { [key: string]: AppContent };
+  isGenerating?: boolean;
   updatedAt?: string;
   createdAt?: string;
 }
@@ -291,15 +269,16 @@ export default function AppGenerator() {
     } catch(e) { toast.error(e instanceof Error ? e.message : String(e)); return null; } finally { if (!targetApp) setAnalyzing(false); }
   };
 
-  const generateCopy = async (targetApp?: AppData) => {
-    const currentApp = targetApp || data;
-    const appId = targetApp?.id || selectedAppId;
+  // Helper to check for local URL
+  const isLocalUrl = (url: string) => {
+      return url.includes('localhost') || url.includes('127.0.0.1');
+  };
 
-    const ctx = await analyzeProject(currentApp);
-    if (!ctx) return;
-    
-    if (!targetApp) setGenerating(true);
-    try {
+  const generateCopyClient = async (targetApp: AppData, ctx: any) => {
+      const currentApp = targetApp;
+      const appId = targetApp.id;
+      
+      try {
         const config = getGeminiConfig();
         const prompt = `You are an expert ASO Copywriter. Analyze this project: ${JSON.stringify(ctx)}. 
         Generate App Store optimization content for the following languages: 
@@ -384,12 +363,70 @@ export default function AppGenerator() {
             localizations: newLocalizations 
         };
         
-        if (!targetApp) setData(final);
+        if (!targetApp) setData(final); // Should not happen in this flow usually but good fallback
         if (appId) await updateDoc(doc(db, "solvin-apps", appId), final);
         
-        if (targetApp) toast.success("Auto-generation complete!");
+        toast.success("Client-side generation complete!");
 
-    } catch(e) { alert(e); } finally { if (!targetApp) setGenerating(false); }
+    } catch(e) { 
+        alert(e); 
+    } finally { 
+        setGenerating(false); 
+    }
+  };
+
+  const generateCopy = async (targetApp?: AppData) => {
+    const currentApp = targetApp || data;
+    const appId = targetApp?.id || selectedAppId;
+    if (!appId || !user) return;
+
+    const config = getGeminiConfig();
+
+    // Check if using local model
+    if (isLocalUrl(config.baseUrl)) {
+        if (!targetApp) setGenerating(true);
+        toast.info("Using local model (Client-side). Do not refresh page!", { duration: 5000 });
+        
+        // We need context for client side too
+        const ctx = await analyzeProject(currentApp);
+        if (!ctx) {
+            setGenerating(false);
+            return;
+        }
+        
+        await generateCopyClient(currentApp, ctx);
+        return;
+    }
+    
+    // Server-side flow (Remote Model)
+    if (!targetApp) setGenerating(true);
+    
+    try {
+        const token = await user.getIdToken();
+
+        const res = await fetch('/api/generate-aso', {
+             method: 'POST', 
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({ 
+                 appId,
+                 token,
+                 geminiConfig: config,
+                 currentApp
+             })
+        });
+
+        if (!res.ok) {
+            const json = await res.json();
+            throw new Error(json.error || 'Generation Failed');
+        }
+
+        if (targetApp) toast.success("Auto-generation started in background!");
+
+    } catch(e) { 
+        toast.error((e as Error).message);
+    } finally { 
+        if (!targetApp) setGenerating(false); 
+    }
   };
 
   if (authLoading) return <div className="h-full flex items-center justify-center"><Loader2 className="animate-spin opacity-50" /></div>;
@@ -463,9 +500,9 @@ export default function AppGenerator() {
 
                         <div className="w-px h-4 bg-zinc-200 mx-1"></div>
 
-                        <Button variant="outline" size="sm" onClick={() => generateCopy()} disabled={analyzing||generating} className="h-8 text-xs gap-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50">
-                            {analyzing||generating ? <Loader2 className="w-3 h-3 animate-spin"/> : <Sparkles className="w-3 h-3"/>}
-                            {analyzing ? 'Scanning...' : generating ? 'Writing...' : 'AI Generate'}
+                        <Button variant="outline" size="sm" onClick={() => generateCopy()} disabled={analyzing||generating||data.isGenerating} className="h-8 text-xs gap-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50">
+                            {analyzing||generating||data.isGenerating ? <Loader2 className="w-3 h-3 animate-spin"/> : <Sparkles className="w-3 h-3"/>}
+                            {analyzing ? 'Scanning...' : (generating||data.isGenerating) ? 'Generating...' : 'AI Generate'}
                         </Button>
                         <Button size="sm" onClick={handleSave} disabled={loading} className="h-8 text-xs gap-2 bg-zinc-900 text-white hover:bg-zinc-800">
                             {loading ? <Loader2 className="w-3 h-3 animate-spin"/> : <Save className="w-3 h-3"/>}
