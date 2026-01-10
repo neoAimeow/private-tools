@@ -1,8 +1,17 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    match /solvin-apps/{docId} {
+      // Allow users to create docs if they assign themselves as owner
+      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+      
+      // Allow users to read/write their own docs
+      allow read, update, delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+    }
+    
+    // Default deny for everything else
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

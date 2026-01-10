@@ -4,14 +4,16 @@ export interface GeminiConfig {
   imageApiKey: string;
   textModel: string;
   imageModel: string;
+  githubToken?: string;
 }
 
 export const DEFAULT_GEMINI_CONFIG: GeminiConfig = {
-  baseUrl: 'http://127.0.0.1:8045/v1beta',
+  baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
   textApiKey: '',
   imageApiKey: '',
   textModel: 'gemini-2.0-flash',
-  imageModel: 'imagen-3.0-generate-002', // Or appropriate model
+  imageModel: 'imagen-3.0-generate-002',
+  githubToken: ''
 };
 
 export const STORAGE_KEY = 'solvin_tools_gemini_config';

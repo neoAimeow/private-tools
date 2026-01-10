@@ -1,26 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from './style.module.scss';
-import { db } from '../../../lib/firebase';
-import { collection, addDoc, updateDoc, doc, onSnapshot, query, orderBy, getDoc } from 'firebase/firestore';
+import { db, storage, auth } from '../../../lib/firebase';
+import { collection, addDoc, updateDoc, doc, onSnapshot, query, orderBy, getDoc, where } from 'firebase/firestore';
+import { ref, getDownloadURL, uploadString } from 'firebase/storage';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 import { getGeminiConfig } from '../../../lib/config';
 
 interface AppData {
   id?: string;
+  ownerId?: string;
   name: string;
   localPath: string;
   supportUrl: string;
   marketingUrl: string;
-  
-  // App Store
   promoText: string;
   description: string;
   keywords: string;
-  
-  // Play Store
   shortDescription: string;
-  fullDescription: string; // Often same as description, but separate field
-  
-  iconUrl?: string; // We might store base64 or firebase storage URL. For now, base64 for simplicity if small enough, or external URL.      
+  fullDescription: string;
   updatedAt?: string;
   createdAt?: string;
 }
@@ -32,6 +29,9 @@ const INITIAL_DATA: AppData = {
 };
 
 export default function AppGenerator() {
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
   const [apps, setApps] = useState<AppData[]>([]);
 
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
@@ -41,29 +41,38 @@ export default function AppGenerator() {
   const [generating, setGenerating] = useState(false);
   const [view, setView] = useState<'list' | 'detail'>('list');
 
-  // Loading Overlay Component
-  const LoadingOverlay = ({ text }: { text: string }) => (
-    <div className={styles.loadingOverlay}>
-        <div className={styles.spinner}></div>
-        <p>{text}</p>
-    </div>
-  );
-
-  // Load apps with Snapshot (Realtime)
+  // Auth Listener
   useEffect(() => {
-    // Fallback to name ordering if updatedAt is missing in old docs, 
-    // but ideally we want updatedAt. 
-    // For now, let's use name to guarantee visibility of ALL docs including old ones.
-    const q = query(collection(db, "solvin-apps"), orderBy("name"));
+    const unsub = onAuthStateChanged(auth, (u) => {
+        setUser(u);
+        setAuthLoading(false);
+    });
+    return () => unsub();
+  }, []);
+
+  // Load apps with Snapshot (Realtime) - DEPENDS ON USER
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+        setApps([]);
+        return;
+    }
+
+    // Filter by ownerId
+    const q = query(
+        collection(db, "solvin-apps"), 
+        where("ownerId", "==", user.uid)
+        // orderBy("name") // Removed to avoid index issues for now
+    );
     
     const unsub = onSnapshot(q, (snapshot) => {
         const list: AppData[] = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as AppData));
-        // Sort in memory to handle mixed data (some with updatedAt, some without)
+        // Sort in memory
         list.sort((a, b) => {
             if (a.updatedAt && b.updatedAt) {
                 return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
             }
-            return 0; // Keep original order if no date
+            return (a.name || '').localeCompare(b.name || '');
         });
         setApps(list);
     }, (error) => {
@@ -71,7 +80,18 @@ export default function AppGenerator() {
     });
     
     return () => unsub();
-  }, []);
+  }, [user, authLoading]);
+
+  if (authLoading) return <div className={styles.loadingOverlay}><div className={styles.spinner}></div></div>;
+
+  if (!user) {
+      return (
+          <div className={styles.emptyState} style={{height: '60vh'}}>
+              <h3>Login Required</h3>
+              <p>Please sign in from the top right corner to access your apps.</p>
+          </div>
+      );
+  }
 
   // Handle URL ID
   useEffect(() => {
@@ -113,12 +133,14 @@ export default function AppGenerator() {
   };
 
   const handleCreate = async () => {
+    if (!user) return;
     setLoading(true);
     try {
         // Create empty doc immediately
         const now = new Date().toISOString();
         const docRef = await addDoc(collection(db, "solvin-apps"), {
             ...INITIAL_DATA,
+            ownerId: user.uid,
             name: 'New Untitled App', // Give it a placeholder name so it's visible
             createdAt: now,
             updatedAt: now
@@ -147,16 +169,20 @@ export default function AppGenerator() {
     setSelectedAppId(null);
   };
 
+  // Helper to save data
+  const saveDataToFirestore = async (newData: AppData) => {
+      if (!selectedAppId) return;
+      await updateDoc(doc(db, "solvin-apps", selectedAppId), { 
+        ...newData,
+        updatedAt: new Date().toISOString()
+      });
+  };
+
   const handleSave = async () => {
     try {
         setLoading(true);
-        if (selectedAppId) {
-            await updateDoc(doc(db, "solvin-apps", selectedAppId), { 
-                ...data,
-                updatedAt: new Date().toISOString()
-            });
-            alert('Saved!');
-        }
+        await saveDataToFirestore(data);
+        alert('Saved!');
     } catch (e) {
         alert('Error saving: ' + (e as Error).message);
     } finally {
@@ -164,14 +190,21 @@ export default function AppGenerator() {
     }
   };
 
-  // 1. Analyze Local Project
+  // 1. Analyze Project (Local or GitHub)
   const analyzeProject = async () => {
-    if (!data.localPath) return alert('Please enter a local path first');
+    if (!data.localPath) return alert('Please enter a GitHub Repo or Local Path first');
     setAnalyzing(true);
+    
+    // Get config for token
+    const config = getGeminiConfig();
+
     try {
         const res = await fetch('/api/analyze-project', {
             method: 'POST',
-            body: JSON.stringify({ projectPath: data.localPath })
+            body: JSON.stringify({ 
+                projectPath: data.localPath,
+                githubToken: config.githubToken // Pass token if set
+            })
         });
         const context = await res.json();
         
@@ -179,7 +212,10 @@ export default function AppGenerator() {
         
         // Auto-fill name if empty
         if (!data.name && context.packageJson?.name) {
-            setData(prev => ({ ...prev, name: context.packageJson.name }));
+            const newName = context.packageJson.name;
+            setData(prev => ({ ...prev, name: newName }));
+            // Also auto-save the name discovery
+            saveDataToFirestore({ ...data, name: newName });
         }
 
         return context; // Return for generator to use
@@ -214,7 +250,7 @@ export default function AppGenerator() {
       - App Store Description: Max 4000 chars. Markdown. Professional.
       - App Store Keywords: Max 100 chars, comma separated. High volume.
       - Play Store Short Description: Max 80 chars.
-      - Play Store Full Description: Max 4000 chars. HTML compatible (simple tags).
+      - Play Store Full Description: Max 4000 chars. Markdown format.
 
       Return strictly valid JSON:
       {
@@ -277,11 +313,17 @@ export default function AppGenerator() {
         const jsonStr = fullText.replace(/```json/g, '').replace(/```/g, '').trim();
         const generated = JSON.parse(jsonStr);
 
-        setData(prev => ({
-            ...prev,
+        const finalData = {
+            ...data,
             ...generated
-        }));
+        };
 
+        // Update UI
+        setData(finalData);
+        
+        // Auto Save
+        await saveDataToFirestore(finalData);
+        
     } catch (e) {
         alert('Generation failed: ' + (e as Error).message);
     } finally {
@@ -289,112 +331,155 @@ export default function AppGenerator() {
     }
   };
 
-  // 3. Generate Icon
-  const generateIcon = async () => {
-    const config = getGeminiConfig();
-    if (!config.imageApiKey) return alert('Image API Key missing in Settings');
-    
-    const prompt = prompt("Describe the icon style (e.g., 'Minimalist neon cube, dark background, 3d render'):", "Modern app icon, high quality");
-    if (!prompt) return;
-
-    setGenerating(true);
-    try {
-        let baseUrl = config.baseUrl.replace(/\/$/, '');
-        if (!baseUrl.includes('/v1') && !baseUrl.includes('googleapis.com')) {
-             baseUrl += '/v1beta';
-        }
-
-        const url = `${baseUrl}/models/${config.imageModel}:predict`;
-        alert("Note: Direct Image Generation via raw API Key often requires Vertex AI (OAuth) rather than simple API Key. If this fails, check console.");
-    } catch (e) {
-        alert('Icon Gen Error: ' + (e as Error).message);
-    } finally {
-        setGenerating(false);
-    }
-  };
-
-  if (view === 'list') return (
-    <div className={styles.container}>
-        <div className={styles.header}>
-            <h1>Solvin App Tools</h1>
-            <div>
-                <button onClick={handleCreate} className={styles.primary}>+ New App</button>
-            </div>
-        </div>
-        <div className={styles.list}>
-            {apps.map(app => (
-                <div key={app.id} className={styles.card} onClick={() => handleSelect(app)}>
-                    <div className={styles.iconPlaceholder}>{app.name[0]}</div>
-                    <div className={styles.info}>
-                        <h3>{app.name || 'Untitled'}</h3>
-                        <p>{app.localPath}</p>
-                    </div>
-                </div>
-            ))}
-            {apps.length === 0 && <p className={styles.empty}>No apps configured.</p>}
-        </div>
-    </div>
-  );
+  // ... (previous code remains the same up to render) ...
 
   return (
-    <div className={styles.container}>
-        <div className={styles.header}>
-            <button onClick={handleBack}>&larr; Back</button>
-            <div className={styles.actions}>
-                <button onClick={generateCopy} disabled={analyzing || generating}>
-                    {analyzing ? 'Analyzing...' : generating ? 'Generating Copy...' : '✨ Auto-Generate Copy'}
+    <div className={styles.splitLayout}>
+        {/* Sidebar */}
+        <div className={styles.sidebar}>
+            <div className={styles.sidebarHeader}>
+                <h2>Apps</h2>
+                <button onClick={handleCreate} className={styles.iconBtn} title="New App">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
                 </button>
-                <button onClick={handleSave} disabled={loading} className={styles.primary}>
-                    {loading ? 'Saving...' : 'Save App'}
-                </button>
+            </div>
+            
+            <div className={styles.appList}>
+                {apps.map(app => (
+                    <div 
+                        key={app.id} 
+                        className={`${styles.navItem} ${selectedAppId === app.id ? styles.active : ''}`} 
+                        onClick={() => handleSelect(app)}
+                    >
+                        <div className={styles.navIcon}>{app.name[0]?.toUpperCase()}</div>
+                        <div className={styles.navInfo}>
+                            <span className={styles.navTitle}>{app.name || 'Untitled'}</span>
+                            <span className={styles.navSubtitle}>{app.updatedAt ? new Date(app.updatedAt).toLocaleDateString() : 'No date'}</span>
+                        </div>
+                    </div>
+                ))}
+                {apps.length === 0 && <div className={styles.emptyNav}>No apps yet.</div>}
             </div>
         </div>
 
-        <div className={styles.formGrid}>
-            <div className={styles.section}>
-                <h3>Basic Info</h3>
-                <label>App Name</label>
-                <input value={data.name} onChange={e => setData({...data, name: e.target.value})} />
-                
-                <label>Local Project Path (Absolute)</label>
-                <input value={data.localPath} onChange={e => setData({...data, localPath: e.target.value})} placeholder="/Users/neo/Workspaces/..." />
-                
-                <label>Support URL</label>
-                <input value={data.supportUrl} onChange={e => setData({...data, supportUrl: e.target.value})} />
-                
-                <label>Marketing URL</label>
-                <input value={data.marketingUrl} onChange={e => setData({...data, marketingUrl: e.target.value})} />
-
-                <div className={styles.iconSection}>
-                     <label>App Icon (1024x1024)</label>
-                     <div className={styles.iconPreview}>
-                        {data.iconUrl ? <img src={data.iconUrl} /> : <div className={styles.placeholder}>No Icon</div>}
-                     </div>
-                     <button onClick={generateIcon} className={styles.smBtn} disabled>✨ Generate Icon (Coming Soon)</button>
-                     <input type="text" placeholder="Or paste Image URL" value={data.iconUrl || ''} onChange={e => setData({...data, iconUrl: e.target.value})} />
+        {/* Main Content */}
+        <div className={styles.mainContent}>
+            {!selectedAppId ? (
+                <div className={styles.emptyState}>
+                    <div className={styles.emptyIcon}>📱</div>
+                    <h3>Select an App</h3>
+                    <p>Choose an app from the sidebar or create a new one to get started.</p>
+                    <button onClick={handleCreate} className={styles.primary}>Create New App</button>
                 </div>
-            </div>
+            ) : (
+                <>
+                    <div className={styles.topBar}>
+                        <div className={styles.breadcrumbs}>
+                            <span>Apps</span>
+                            <span className={styles.separator}>/</span>
+                            <span className={styles.current}>{data.name || 'Untitled'}</span>
+                        </div>
+                        <div className={styles.actions}>
+                             <button onClick={generateCopy} disabled={analyzing || generating} className={styles.magicBtn}>
+                                {analyzing ? 'Analyzing...' : generating ? 'Generating...' : '✨ Auto-Generate'}
+                            </button>
+                            <button onClick={handleSave} disabled={loading} className={styles.primary}>
+                                {loading ? 'Saving...' : 'Save Changes'}
+                            </button>
+                        </div>
+                    </div>
 
-            <div className={styles.section}>
-                <h3>App Store</h3>
-                <label>Promo Text ({data.promoText?.length || 0}/170)</label>
-                <textarea rows={2} value={data.promoText} onChange={e => setData({...data, promoText: e.target.value})} />
-                
-                <label>Description ({data.description?.length || 0}/4000)</label>
-                <textarea rows={10} value={data.description} onChange={e => setData({...data, description: e.target.value})} />
+                    <div className={styles.scrollArea}>
+                        <div className={styles.formGrid}>
+                            {/* Basic Info Card */}
+                            <div className={styles.card}>
+                                <div className={styles.cardHeader}>
+                                    <h3>Project Identity</h3>
+                                </div>
+                                <div className={styles.cardBody}>
+                                    <div className={styles.row}>
+                                        <div className={styles.fieldGroup}>
+                                            <label>App Name</label>
+                                            <input value={data.name} onChange={e => setData({...data, name: e.target.value})} placeholder="e.g. Super ToDo" />
+                                        </div>
+                                        <div className={styles.fieldGroup}>
+                                            <label>GitHub Repo / Local Path</label>
+                                            <input value={data.localPath} onChange={e => setData({...data, localPath: e.target.value})} placeholder="owner/repo (e.g. facebook/react) or /local/path" />
+                                        </div>
+                                    </div>
+                                    
+                                    <div className={styles.row}>
+                                        <div className={styles.fieldGroup}>
+                                            <label>Support URL</label>
+                                            <input value={data.supportUrl} onChange={e => setData({...data, supportUrl: e.target.value})} placeholder="https://..." />
+                                        </div>
+                                        <div className={styles.fieldGroup}>
+                                            <label>Marketing URL</label>
+                                            <input value={data.marketingUrl} onChange={e => setData({...data, marketingUrl: e.target.value})} placeholder="https://..." />
+                                        </div>
+                                    </div>
 
-                <label>Keywords (100 chars)</label>
-                <input value={data.keywords} onChange={e => setData({...data, keywords: e.target.value})} />
-            </div>
+                                </div>
+                            </div>
 
-            <div className={styles.section}>
-                <h3>Google Play</h3>
-                <label>Short Description ({data.shortDescription?.length || 0}/80)</label>
-                <textarea rows={2} value={data.shortDescription} onChange={e => setData({...data, shortDescription: e.target.value})} />
-                
-                <label>Full Description ({data.fullDescription?.length || 0}/4000)</label>
-                <textarea rows={10} value={data.fullDescription} onChange={e => setData({...data, fullDescription: e.target.value})} />
-            </div>
+                            {/* Store Metadata Grid */}
+                            <div className={styles.storeGrid}>
+                                {/* Apple App Store */}
+                                <div className={styles.card}>
+                                    <div className={`${styles.cardHeader} ${styles.appleHeader}`}>
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.4 12.8c-.1-1.7 1.4-2.5 1.5-2.6-1.6-2.3-4-2.6-4.8-2.6-2-.2-3.9 1.2-4.9 1.2-1 0-2.6-1.1-4.3-1.1-2.2 0-4.2 1.3-5.3 3.3-2.3 3.9-.6 9.7 1.6 13 1.1 1.6 2.4 3.4 4.1 3.4 1.6 0 2.3-1.1 4.3-1.1 2 0 2.6 1.1 4.3 1.1 1.8 0 3-1.6 4.1-3.2 1.3-1.8 1.8-3.6 1.8-3.7 0 0-3.4-1.3-3.4-5.1zM14.8 5.7c.9-1.1 1.5-2.6 1.3-4.1-1.3.1-2.9.9-3.8 2-1 .9-1.6 2.6-1.4 4 1.4.1 2.9-.8 3.9-1.9z"/></svg>
+                                        <h3>App Store</h3>
+                                    </div>
+                                    <div className={styles.cardBody}>
+                                        <div className={styles.fieldGroup}>
+                                            <div className={styles.labelRow}>
+                                                <label>Promo Text</label>
+                                                <span className={data.promoText?.length > 170 ? styles.error : ''}>{data.promoText?.length || 0}/170</span>
+                                            </div>
+                                            <textarea rows={3} value={data.promoText} onChange={e => setData({...data, promoText: e.target.value})} />
+                                        </div>
+                                        <div className={styles.fieldGroup}>
+                                            <div className={styles.labelRow}>
+                                                <label>Description</label>
+                                                <span>{data.description?.length || 0}/4000</span>
+                                            </div>
+                                            <textarea rows={12} className={styles.codeFont} value={data.description} onChange={e => setData({...data, description: e.target.value})} />
+                                        </div>
+                                        <div className={styles.fieldGroup}>
+                                            <label>Keywords</label>
+                                            <input value={data.keywords} onChange={e => setData({...data, keywords: e.target.value})} placeholder="productivity, task, ..." />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Google Play Store */}
+                                <div className={styles.card}>
+                                    <div className={`${styles.cardHeader} ${styles.playHeader}`}>
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M4.5 2.8C4.1 3.2 3.9 3.8 3.9 4.6v14.8c0 .8.2 1.4.6 1.8l.2.2 8.6-8.6v-.4L4.7 2.6l-.2.2zm10.2 9.4l2.7 2.7-3.3 1.9L13 15.7l1.7-3.5zm1.1-1.1l-6-5.9-1.1 1.1 7.1 7.1 5.3-3-5.3.7zm-7.1 7.1l6-5.9 5.3 3-8.6 4.8-2.7-1.9z"/></svg>
+                                        <h3>Google Play</h3>
+                                    </div>
+                                    <div className={styles.cardBody}>
+                                        <div className={styles.fieldGroup}>
+                                            <div className={styles.labelRow}>
+                                                <label>Short Description</label>
+                                                <span className={data.shortDescription?.length > 80 ? styles.error : ''}>{data.shortDescription?.length || 0}/80</span>
+                                            </div>
+                                            <textarea rows={3} value={data.shortDescription} onChange={e => setData({...data, shortDescription: e.target.value})} />
+                                        </div>
+                                        <div className={styles.fieldGroup}>
+                                            <div className={styles.labelRow}>
+                                                <label>Full Description</label>
+                                                <span>{data.fullDescription?.length || 0}/4000</span>
+                                            </div>
+                                            <textarea rows={12} className={styles.codeFont} value={data.fullDescription} onChange={e => setData({...data, fullDescription: e.target.value})} />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
 
         {(loading || analyzing || generating) && (
