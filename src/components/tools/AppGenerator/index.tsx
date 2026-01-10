@@ -1,10 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import styles from './style.module.scss';
 import { db, storage, auth } from '../../../lib/firebase';
 import { collection, addDoc, updateDoc, doc, onSnapshot, query, orderBy, getDoc, where } from 'firebase/firestore';
 import { ref, getDownloadURL, uploadString } from 'firebase/storage';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { getGeminiConfig } from '../../../lib/config';
+
+// UI Components
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Sparkles, Save, Apple, Play, Plus, Loader2, Smartphone } from 'lucide-react';
 
 interface AppData {
   id?: string;
@@ -333,148 +340,247 @@ export default function AppGenerator() {
 
   // ... (previous code remains the same up to render) ...
 
+  if (authLoading) return <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
+
+  if (!user) {
+      return (
+          <div className="flex h-[60vh] flex-col items-center justify-center rounded-xl border border-dashed bg-muted/50 text-center p-8">
+              <h3 className="text-xl font-semibold">Login Required</h3>
+              <p className="text-muted-foreground mt-2 mb-6">Please sign in from the top right corner to access your apps.</p>
+          </div>
+      );
+  }
+
   return (
-    <div className={styles.splitLayout}>
+    <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-6 h-[calc(100vh-8rem)]">
+        {/* Hidden File Input */}
+        <input 
+            type="file" 
+            ref={fileInputRef} 
+            // onChange={handleFileUpload} 
+            accept="image/*" 
+            style={{ display: 'none' }} 
+        />
+        
         {/* Sidebar */}
-        <div className={styles.sidebar}>
-            <div className={styles.sidebarHeader}>
-                <h2>Apps</h2>
-                <button onClick={handleCreate} className={styles.iconBtn} title="New App">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
-                </button>
+        <Card className="flex flex-col h-full overflow-hidden border-border/50 bg-background/50 backdrop-blur-xl">
+            <div className="p-4 border-b flex items-center justify-between">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">My Apps</h2>
+                <Button variant="ghost" size="icon" onClick={handleCreate} title="New App" className="h-8 w-8">
+                    <Plus className="h-4 w-4" />
+                </Button>
             </div>
             
-            <div className={styles.appList}>
+            <div className="flex-1 overflow-y-auto p-3 space-y-1">
                 {apps.map(app => (
                     <div 
                         key={app.id} 
-                        className={`${styles.navItem} ${selectedAppId === app.id ? styles.active : ''}`} 
+                        className={`
+                            flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all border
+                            ${selectedAppId === app.id 
+                                ? 'bg-background border-border shadow-sm ring-1 ring-ring/10' 
+                                : 'border-transparent hover:bg-muted/50 hover:border-border/30 text-muted-foreground'}
+                        `}
                         onClick={() => handleSelect(app)}
                     >
-                        <div className={styles.navIcon}>{app.name[0]?.toUpperCase()}</div>
-                        <div className={styles.navInfo}>
-                            <span className={styles.navTitle}>{app.name || 'Untitled'}</span>
-                            <span className={styles.navSubtitle}>{app.updatedAt ? new Date(app.updatedAt).toLocaleDateString() : 'No date'}</span>
+                        <div className={`
+                            flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-bold
+                            ${selectedAppId === app.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}
+                        `}>
+                            {app.name[0]?.toUpperCase() || '?'}
+                        </div>
+                        <div className="flex flex-col overflow-hidden">
+                            <span className={`text-sm font-medium truncate ${selectedAppId === app.id ? 'text-foreground' : ''}`}>
+                                {app.name || 'Untitled App'}
+                            </span>
+                            <span className="text-xs text-muted-foreground truncate">
+                                {app.updatedAt ? new Date(app.updatedAt).toLocaleDateString() : 'No date'}
+                            </span>
                         </div>
                     </div>
                 ))}
-                {apps.length === 0 && <div className={styles.emptyNav}>No apps yet.</div>}
+                {apps.length === 0 && (
+                    <div className="flex flex-col items-center justify-center h-40 text-center text-muted-foreground p-4">
+                        <Smartphone className="h-8 w-8 mb-2 opacity-20" />
+                        <span className="text-xs">No apps yet. Click + to create one.</span>
+                    </div>
+                )}
             </div>
-        </div>
+        </Card>
 
         {/* Main Content */}
-        <div className={styles.mainContent}>
+        <div className="flex flex-col h-full overflow-hidden">
             {!selectedAppId ? (
-                <div className={styles.emptyState}>
-                    <div className={styles.emptyIcon}>📱</div>
-                    <h3>Select an App</h3>
-                    <p>Choose an app from the sidebar or create a new one to get started.</p>
-                    <button onClick={handleCreate} className={styles.primary}>Create New App</button>
-                </div>
+                <Card className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-muted/10 border-dashed">
+                    <Smartphone className="h-16 w-16 text-muted-foreground/20 mb-4" />
+                    <h3 className="text-lg font-semibold">Select an App</h3>
+                    <p className="text-muted-foreground max-w-xs mt-2 mb-6">Choose an app from the sidebar or create a new one to get started.</p>
+                    <Button onClick={handleCreate}>Create New App</Button>
+                </Card>
             ) : (
                 <>
-                    <div className={styles.topBar}>
-                        <div className={styles.breadcrumbs}>
+                    {/* Top Bar */}
+                    <div className="flex items-center justify-between mb-6 px-1">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <span>Apps</span>
-                            <span className={styles.separator}>/</span>
-                            <span className={styles.current}>{data.name || 'Untitled'}</span>
+                            <span className="text-border">/</span>
+                            <span className="font-semibold text-foreground bg-background px-2 py-0.5 rounded border shadow-sm">
+                                {data.name || 'Untitled'}
+                            </span>
                         </div>
-                        <div className={styles.actions}>
-                             <button onClick={generateCopy} disabled={analyzing || generating} className={styles.magicBtn}>
-                                {analyzing ? 'Analyzing...' : generating ? 'Generating...' : '✨ Auto-Generate'}
-                            </button>
-                            <button onClick={handleSave} disabled={loading} className={styles.primary}>
+                        <div className="flex gap-3">
+                             <Button 
+                                variant="outline" 
+                                onClick={generateCopy} 
+                                disabled={analyzing || generating} 
+                                className="gap-2 bg-background/50 backdrop-blur-sm border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 text-indigo-600 dark:text-indigo-300"
+                            >
+                                {analyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : 
+                                 generating ? <Loader2 className="h-4 w-4 animate-spin" /> : 
+                                 <Sparkles className="h-4 w-4" />}
+                                {analyzing ? 'Analyzing...' : generating ? 'Writing...' : 'Auto-Generate'}
+                            </Button>
+                            <Button onClick={handleSave} disabled={loading} className="gap-2">
+                                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                                 {loading ? 'Saving...' : 'Save Changes'}
-                            </button>
+                            </Button>
                         </div>
                     </div>
 
-                    <div className={styles.scrollArea}>
-                        <div className={styles.formGrid}>
-                            {/* Basic Info Card */}
-                            <div className={styles.card}>
-                                <div className={styles.cardHeader}>
-                                    <h3>Project Identity</h3>
-                                </div>
-                                <div className={styles.cardBody}>
-                                    <div className={styles.row}>
-                                        <div className={styles.fieldGroup}>
-                                            <label>App Name</label>
-                                            <input value={data.name} onChange={e => setData({...data, name: e.target.value})} placeholder="e.g. Super ToDo" />
+                    {/* Scrollable Form Area */}
+                    <div className="flex-1 overflow-y-auto pr-2 -mr-2 pb-20">
+                        <div className="grid gap-6">
+                            
+                            {/* Project Identity */}
+                            <Card>
+                                <CardHeader className="pb-4">
+                                    <CardTitle className="text-base">Project Identity</CardTitle>
+                                    <CardDescription>Core details about your application.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="grid gap-6">
+                                    <div className="grid md:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <Label>App Name</Label>
+                                            <Input 
+                                                value={data.name} 
+                                                onChange={e => setData({...data, name: e.target.value})} 
+                                                placeholder="e.g. Super ToDo" 
+                                            />
                                         </div>
-                                        <div className={styles.fieldGroup}>
-                                            <label>GitHub Repo / Local Path</label>
-                                            <input value={data.localPath} onChange={e => setData({...data, localPath: e.target.value})} placeholder="owner/repo (e.g. facebook/react) or /local/path" />
+                                        <div className="space-y-2">
+                                            <Label>GitHub Repo / Local Path</Label>
+                                            <Input 
+                                                value={data.localPath} 
+                                                onChange={e => setData({...data, localPath: e.target.value})} 
+                                                placeholder="owner/repo (e.g. facebook/react)" 
+                                            />
                                         </div>
                                     </div>
                                     
-                                    <div className={styles.row}>
-                                        <div className={styles.fieldGroup}>
-                                            <label>Support URL</label>
-                                            <input value={data.supportUrl} onChange={e => setData({...data, supportUrl: e.target.value})} placeholder="https://..." />
+                                    <div className="grid md:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <Label>Support URL</Label>
+                                            <Input 
+                                                value={data.supportUrl} 
+                                                onChange={e => setData({...data, supportUrl: e.target.value})} 
+                                                placeholder="https://..." 
+                                            />
                                         </div>
-                                        <div className={styles.fieldGroup}>
-                                            <label>Marketing URL</label>
-                                            <input value={data.marketingUrl} onChange={e => setData({...data, marketingUrl: e.target.value})} placeholder="https://..." />
+                                        <div className="space-y-2">
+                                            <Label>Marketing URL</Label>
+                                            <Input 
+                                                value={data.marketingUrl} 
+                                                onChange={e => setData({...data, marketingUrl: e.target.value})} 
+                                                placeholder="https://..." 
+                                            />
                                         </div>
                                     </div>
+                                </CardContent>
+                            </Card>
 
-                                </div>
-                            </div>
-
-                            {/* Store Metadata Grid */}
-                            <div className={styles.storeGrid}>
+                            {/* Store Grid */}
+                            <div className="grid md:grid-cols-2 gap-6">
                                 {/* Apple App Store */}
-                                <div className={styles.card}>
-                                    <div className={`${styles.cardHeader} ${styles.appleHeader}`}>
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.4 12.8c-.1-1.7 1.4-2.5 1.5-2.6-1.6-2.3-4-2.6-4.8-2.6-2-.2-3.9 1.2-4.9 1.2-1 0-2.6-1.1-4.3-1.1-2.2 0-4.2 1.3-5.3 3.3-2.3 3.9-.6 9.7 1.6 13 1.1 1.6 2.4 3.4 4.1 3.4 1.6 0 2.3-1.1 4.3-1.1 2 0 2.6 1.1 4.3 1.1 1.8 0 3-1.6 4.1-3.2 1.3-1.8 1.8-3.6 1.8-3.7 0 0-3.4-1.3-3.4-5.1zM14.8 5.7c.9-1.1 1.5-2.6 1.3-4.1-1.3.1-2.9.9-3.8 2-1 .9-1.6 2.6-1.4 4 1.4.1 2.9-.8 3.9-1.9z"/></svg>
-                                        <h3>App Store</h3>
-                                    </div>
-                                    <div className={styles.cardBody}>
-                                        <div className={styles.fieldGroup}>
-                                            <div className={styles.labelRow}>
-                                                <label>Promo Text</label>
-                                                <span className={data.promoText?.length > 170 ? styles.error : ''}>{data.promoText?.length || 0}/170</span>
+                                <Card className="border-t-4 border-t-zinc-800">
+                                    <CardHeader className="pb-4 flex flex-row items-center gap-2 space-y-0">
+                                        <Apple className="h-5 w-5 mb-1" />
+                                        <div className="flex flex-col">
+                                            <CardTitle className="text-base">App Store</CardTitle>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="grid gap-4">
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between text-xs">
+                                                <Label>Promo Text</Label>
+                                                <span className={data.promoText?.length > 170 ? "text-destructive font-bold" : "text-muted-foreground"}>
+                                                    {data.promoText?.length || 0}/170
+                                                </span>
                                             </div>
-                                            <textarea rows={3} value={data.promoText} onChange={e => setData({...data, promoText: e.target.value})} />
+                                            <Textarea 
+                                                rows={3} 
+                                                value={data.promoText} 
+                                                onChange={e => setData({...data, promoText: e.target.value})} 
+                                            />
                                         </div>
-                                        <div className={styles.fieldGroup}>
-                                            <div className={styles.labelRow}>
-                                                <label>Description</label>
-                                                <span>{data.description?.length || 0}/4000</span>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between text-xs">
+                                                <Label>Description</Label>
+                                                <span className="text-muted-foreground">{data.description?.length || 0}/4000</span>
                                             </div>
-                                            <textarea rows={12} className={styles.codeFont} value={data.description} onChange={e => setData({...data, description: e.target.value})} />
+                                            <Textarea 
+                                                rows={12} 
+                                                className="font-mono text-xs" 
+                                                value={data.description} 
+                                                onChange={e => setData({...data, description: e.target.value})} 
+                                            />
                                         </div>
-                                        <div className={styles.fieldGroup}>
-                                            <label>Keywords</label>
-                                            <input value={data.keywords} onChange={e => setData({...data, keywords: e.target.value})} placeholder="productivity, task, ..." />
+                                        <div className="space-y-2">
+                                            <Label>Keywords</Label>
+                                            <Input 
+                                                value={data.keywords} 
+                                                onChange={e => setData({...data, keywords: e.target.value})} 
+                                                placeholder="productivity, task, ..." 
+                                            />
                                         </div>
-                                    </div>
-                                </div>
+                                    </CardContent>
+                                </Card>
 
                                 {/* Google Play Store */}
-                                <div className={styles.card}>
-                                    <div className={`${styles.cardHeader} ${styles.playHeader}`}>
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M4.5 2.8C4.1 3.2 3.9 3.8 3.9 4.6v14.8c0 .8.2 1.4.6 1.8l.2.2 8.6-8.6v-.4L4.7 2.6l-.2.2zm10.2 9.4l2.7 2.7-3.3 1.9L13 15.7l1.7-3.5zm1.1-1.1l-6-5.9-1.1 1.1 7.1 7.1 5.3-3-5.3.7zm-7.1 7.1l6-5.9 5.3 3-8.6 4.8-2.7-1.9z"/></svg>
-                                        <h3>Google Play</h3>
-                                    </div>
-                                    <div className={styles.cardBody}>
-                                        <div className={styles.fieldGroup}>
-                                            <div className={styles.labelRow}>
-                                                <label>Short Description</label>
-                                                <span className={data.shortDescription?.length > 80 ? styles.error : ''}>{data.shortDescription?.length || 0}/80</span>
-                                            </div>
-                                            <textarea rows={3} value={data.shortDescription} onChange={e => setData({...data, shortDescription: e.target.value})} />
+                                <Card className="border-t-4 border-t-emerald-600">
+                                    <CardHeader className="pb-4 flex flex-row items-center gap-2 space-y-0">
+                                        <Play className="h-5 w-5 mb-1 text-emerald-600" />
+                                        <div className="flex flex-col">
+                                            <CardTitle className="text-base">Google Play</CardTitle>
                                         </div>
-                                        <div className={styles.fieldGroup}>
-                                            <div className={styles.labelRow}>
-                                                <label>Full Description</label>
-                                                <span>{data.fullDescription?.length || 0}/4000</span>
+                                    </CardHeader>
+                                    <CardContent className="grid gap-4">
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between text-xs">
+                                                <Label>Short Description</Label>
+                                                <span className={data.shortDescription?.length > 80 ? "text-destructive font-bold" : "text-muted-foreground"}>
+                                                    {data.shortDescription?.length || 0}/80
+                                                </span>
                                             </div>
-                                            <textarea rows={12} className={styles.codeFont} value={data.fullDescription} onChange={e => setData({...data, fullDescription: e.target.value})} />
+                                            <Textarea 
+                                                rows={3} 
+                                                value={data.shortDescription} 
+                                                onChange={e => setData({...data, shortDescription: e.target.value})} 
+                                            />
                                         </div>
-                                    </div>
-                                </div>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between text-xs">
+                                                <Label>Full Description</Label>
+                                                <span className="text-muted-foreground">{data.fullDescription?.length || 0}/4000</span>
+                                            </div>
+                                            <Textarea 
+                                                rows={12} 
+                                                className="font-mono text-xs" 
+                                                value={data.fullDescription} 
+                                                onChange={e => setData({...data, fullDescription: e.target.value})} 
+                                            />
+                                        </div>
+                                    </CardContent>
+                                </Card>
                             </div>
                         </div>
                     </div>
@@ -483,9 +589,12 @@ export default function AppGenerator() {
         </div>
 
         {(loading || analyzing || generating) && (
-            <LoadingOverlay 
-                text={loading ? 'Saving...' : analyzing ? 'Analyzing Project...' : 'Generating AI Content...'} 
-            />
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+                <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+                <p className="text-lg font-medium text-foreground animate-pulse">
+                    {loading ? 'Saving Changes...' : analyzing ? 'Analyzing Project Structure...' : 'Generating Marketing Copy...'}
+                </p>
+            </div>
         )}
     </div>
   );

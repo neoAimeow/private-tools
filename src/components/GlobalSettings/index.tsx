@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import styles from './style.module.scss';
 import { getGeminiConfig, saveGeminiConfig, type GeminiConfig } from '../../lib/config';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Settings, Github, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 
 export default function GlobalSettings() {
   const [isAiOpen, setIsAiOpen] = useState(false);
@@ -80,85 +92,86 @@ export default function GlobalSettings() {
   };
 
   return (
-    <div style={{ display: 'flex', gap: '0.5rem' }}>
-      <button className={styles.triggerBtn} onClick={() => setIsAiOpen(true)} title="Global AI Settings">
-        ⚙️ AI Config
-      </button>
-      <button className={styles.triggerBtn} onClick={() => setIsGithubOpen(true)} title="GitHub Settings">
-        📦 GitHub Config
-      </button>
-
-      {/* AI Settings Modal */}
-      {isAiOpen && (
-        <div className={styles.overlay} onClick={(e) => { if(e.target === e.currentTarget) setIsAiOpen(false); }}>
-          <div className={styles.modal}>
-            <div className={styles.header}>
-                <h2>Global AI Configuration</h2>
-                <button className={styles.closeBtn} onClick={() => setIsAiOpen(false)}>×</button>
+    <div className="flex gap-2">
+      <Dialog open={isAiOpen} onOpenChange={setIsAiOpen}>
+        <DialogTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+                <Settings className="h-4 w-4" /> AI Config
+            </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>AI Configuration</DialogTitle>
+            <DialogDescription>
+              Configure your Gemini / OpenAI compatible API endpoints here.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="baseUrl">Base URL</Label>
+              <Input id="baseUrl" name="baseUrl" value={config.baseUrl} onChange={handleChange} placeholder="https://generativelanguage.googleapis.com/v1beta" />
             </div>
-            
-            <p className={styles.desc}>Configure your Gemini / OpenAI compatible API endpoints here.</p>
-
-            <div className={styles.grid}>
-                <div className={styles.field}>
-                    <label>Base URL</label>
-                    <input name="baseUrl" value={config.baseUrl} onChange={handleChange} placeholder="https://generativelanguage.googleapis.com/v1beta" />
-                </div>
-                <div className={styles.field}>
-                    <label>Text Model Name</label>
-                    <input name="textModel" value={config.textModel} onChange={handleChange} placeholder="gemini-2.0-flash" />
-                </div>
-                <div className={styles.field}>
-                    <label>Text API Key</label>
-                    <input name="textApiKey" type="password" value={config.textApiKey} onChange={handleChange} placeholder="AIza..." />
-                </div>
-                <div className={styles.field}>
-                    <label>Image Model Name</label>
-                    <input name="imageModel" value={config.imageModel} onChange={handleChange} placeholder="imagen-3.0-generate-002" />
-                </div>
-                <div className={styles.field}>
-                    <label>Image API Key</label>
-                    <input name="imageApiKey" type="password" value={config.imageApiKey} onChange={handleChange} placeholder="AIza... (Optional)" />
-                </div>
+            <div className="grid gap-2">
+              <Label htmlFor="textModel">Text Model Name</Label>
+              <Input id="textModel" name="textModel" value={config.textModel} onChange={handleChange} placeholder="gemini-2.0-flash" />
             </div>
-            
-            <div className={styles.actions}>
-                <button onClick={() => save('ai')} className={styles.saveBtn}>Save Settings</button>
-                <button onClick={testConnection} className={styles.testBtn} disabled={status === 'testing'}>
-                    {status === 'testing' ? 'Testing...' : 'Test Connection'}
-                </button>
+            <div className="grid gap-2">
+              <Label htmlFor="textApiKey">Text API Key</Label>
+              <Input id="textApiKey" name="textApiKey" type="password" value={config.textApiKey} onChange={handleChange} placeholder="AIza..." />
             </div>
-            {msg && <div className={`${styles.status} ${styles[status]}`}>{msg}</div>}
+            <div className="grid gap-2">
+              <Label htmlFor="imageModel">Image Model Name</Label>
+              <Input id="imageModel" name="imageModel" value={config.imageModel} onChange={handleChange} placeholder="imagen-3.0-generate-002" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="imageApiKey">Image API Key</Label>
+              <Input id="imageApiKey" name="imageApiKey" type="password" value={config.imageApiKey} onChange={handleChange} placeholder="AIza... (Optional)" />
+            </div>
           </div>
-        </div>
-      )}
+          
+          {msg && (
+            <div className={`flex items-center gap-2 text-sm p-2 rounded ${status === 'error' ? 'bg-destructive/10 text-destructive' : 'bg-green-50 text-green-600'}`}>
+                {status === 'testing' && <Loader2 className="h-4 w-4 animate-spin" />}
+                {status === 'success' && <CheckCircle2 className="h-4 w-4" />}
+                {status === 'error' && <AlertCircle className="h-4 w-4" />}
+                {msg}
+            </div>
+          )}
 
-      {/* GitHub Settings Modal */}
-      {isGithubOpen && (
-        <div className={styles.overlay} onClick={(e) => { if(e.target === e.currentTarget) setIsGithubOpen(false); }}>
-          <div className={styles.modal}>
-            <div className={styles.header}>
-                <h2>GitHub Configuration</h2>
-                <button className={styles.closeBtn} onClick={() => setIsGithubOpen(false)}>×</button>
-            </div>
-            
-            <p className={styles.desc}>Configure access to private repositories. <a href="https://github.com/settings/tokens" target="_blank" rel="noreferrer" style={{color: 'var(--accent-highlight)'}}>Generate a Token</a></p>
+          <DialogFooter className="flex-col sm:justify-between sm:flex-row gap-2">
+            <Button variant="secondary" onClick={testConnection} disabled={status === 'testing'}>
+                Test Connection
+            </Button>
+            <Button onClick={() => save('ai')}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-            <div className={styles.grid}>
-                <div className={styles.field}>
-                    <label>Personal Access Token (Classic)</label>
-                    <input name="githubToken" type="password" value={config.githubToken || ''} onChange={handleChange} placeholder="ghp_..." />
-                    <span style={{fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.2rem'}}>Requires 'repo' scope for private repositories.</span>
-                </div>
+      <Dialog open={isGithubOpen} onOpenChange={setIsGithubOpen}>
+        <DialogTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+                <Github className="h-4 w-4" /> GitHub
+            </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>GitHub Configuration</DialogTitle>
+            <DialogDescription>
+              Configure access to private repositories. <a href="https://github.com/settings/tokens" target="_blank" rel="noreferrer" className="text-primary hover:underline">Generate a Token</a>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+                <Label htmlFor="githubToken">Personal Access Token (Classic)</Label>
+                <Input id="githubToken" name="githubToken" type="password" value={config.githubToken || ''} onChange={handleChange} placeholder="ghp_..." />
+                <p className="text-[0.8rem] text-muted-foreground">Requires 'repo' scope for private repositories.</p>
             </div>
-            
-            <div className={styles.actions}>
-                <button onClick={() => save('github')} className={styles.saveBtn}>Save GitHub Token</button>
-            </div>
-            {msg && <div className={`${styles.status} success`}>{msg}</div>}
           </div>
-        </div>
-      )}
+          <DialogFooter>
+            <Button onClick={() => save('github')}>Save Token</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
