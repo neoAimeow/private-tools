@@ -3,7 +3,7 @@ import type { APIRoute } from 'astro';
 export const prerender = false;
 
 const ALLOWED_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.py', '.dart', '.go', '.rs', '.java', '.kt', '.swift', '.php', '.rb', '.c', '.cpp', '.h']);
-const IGNORE_PATTERNS = ['node_modules', 'dist', 'build', 'out', '.git', '.github', 'test', 'tests', '__tests__', 'spec', 'assets', 'public', 'components/ui', '.d.ts'];
+const IGNORE_PATTERNS = ['node_modules', 'dist', 'build', 'out', '.git', '.github', 'test', 'tests', '__tests__', 'spec', 'assets', 'public', 'components/ui', '.d.ts', 'locales', 'i18n', 'translations', 'lang', 'l10n'];
 const MAX_CODE_FILES = 15;
 const MAX_FILE_SIZE = 50000; // 50KB per file max
 const TOTAL_CODE_LIMIT = 500000; // 500KB total code limit
