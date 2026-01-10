@@ -21,7 +21,8 @@
       { "title": "Text Reflower", "url": "/tools/text-reflower", "desc": "Fix PDF line breaks & formatting", "icon": "Pilcrow" },
       { "title": "JSON Formatter", "url": "/tools/json", "desc": "Format and validate JSON", "icon": "Braces" },
       { "title": "App Resource Cropper", "url": "/tools/app-resource-cropper", "desc": "Generate App Store assets", "icon": "Crop" },
-      { "title": "App Listing Studio", "url": "/tools/app-generator", "desc": "ASO Gen & App Management", "icon": "Rocket" }
+      { "title": "App Listing Studio", "url": "/tools/app-generator", "desc": "ASO Gen & App Management", "icon": "Rocket" },
+      { "title": "Project Idea Factory", "url": "/tools/idea-factory", "desc": "AI Brainstorming & Asset Gen", "icon": "Lightbulb" }
     ]
   }
 ]

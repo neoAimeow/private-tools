@@ -13,13 +13,20 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Settings, Github, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { LANGUAGES } from '../../lib/constants';
 
 export default function GlobalSettings() {
   const [isAiOpen, setIsAiOpen] = useState(false);
   const [isGithubOpen, setIsGithubOpen] = useState(false);
   
   const [config, setConfig] = useState<GeminiConfig>({
-    baseUrl: 'https://generativelanguage.googleapis.com/v1beta', textApiKey: '', imageApiKey: '', textModel: 'gemini-2.0-flash', imageModel: 'imagen-3.0-generate-002', githubToken: ''
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta', 
+    textApiKey: '', 
+    imageApiKey: '', 
+    textModel: 'gemini-2.0-flash', 
+    imageModel: 'imagen-3.0-generate-002', 
+    githubToken: '',
+    defaultLanguage: 'en-US'
   });
   const [status, setStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [msg, setMsg] = useState('');
@@ -37,7 +44,7 @@ export default function GlobalSettings() {
     }
   }, [isAiOpen, isGithubOpen]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setConfig(prev => ({ ...prev, [name]: value }));
   };
@@ -126,6 +133,22 @@ export default function GlobalSettings() {
             <div className="grid gap-2">
               <Label htmlFor="imageApiKey">Image API Key</Label>
               <Input id="imageApiKey" name="imageApiKey" type="password" value={config.imageApiKey} onChange={handleChange} placeholder="AIza... (Optional)" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="defaultLanguage">Default Output Language</Label>
+              <select 
+                id="defaultLanguage" 
+                name="defaultLanguage" 
+                value={config.defaultLanguage} 
+                onChange={handleChange}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                  {LANGUAGES.map(lang => (
+                      <option key={lang.code} value={lang.code}>
+                          {lang.flag} {lang.name} ({lang.code})
+                      </option>
+                  ))}
+              </select>
             </div>
           </div>
           

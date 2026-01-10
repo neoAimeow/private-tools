@@ -5,6 +5,7 @@ export interface GeminiConfig {
   textModel: string;
   imageModel: string;
   githubToken?: string;
+  defaultLanguage: string;
 }
 
 export const DEFAULT_GEMINI_CONFIG: GeminiConfig = {
@@ -13,7 +14,8 @@ export const DEFAULT_GEMINI_CONFIG: GeminiConfig = {
   imageApiKey: '',
   textModel: 'gemini-2.0-flash',
   imageModel: 'imagen-3.0-generate-002',
-  githubToken: ''
+  githubToken: '',
+  defaultLanguage: 'en-US'
 };
 
 export const STORAGE_KEY = 'solvin_tools_gemini_config';

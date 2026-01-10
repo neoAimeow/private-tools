@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { analyzeGithubProject } from '../../lib/github';
 import { LANGUAGES } from '../../lib/constants';
+import { callGeminiApi } from '../../lib/ai-client';
 
 export const prerender = false;
 
@@ -68,15 +69,9 @@ export const POST: APIRoute = async ({ request }) => {
         // 1. Set isGenerating = true
         await updateFirestore(projectId, 'solvin-apps', appId, { isGenerating: true }, token);
 
-        // Allow response to be sent while we continue processing?
-        // Astro/Cloudflare might kill the process if we return.
-        // We will AWAIT the process. If client disconnects, hopefully runtime continues.
-        // If not, at least we tried. "Background" usually requires queues.
-
         try {
             // 2. Analyze Project
             const ctx = await analyzeGithubProject(currentApp.localizations ? currentApp.localPath : currentApp.localPath, geminiConfig.githubToken); // Logic reuse
-            // Actually passed currentApp.localPath is what matters.
 
             // 3. Call Gemini
             const prompt = `You are an expert ASO Copywriter. Analyze this project: ${JSON.stringify(ctx)}. 
@@ -97,26 +92,17 @@ export const POST: APIRoute = async ({ request }) => {
               ...
             }`;
 
-            let baseUrl = geminiConfig.baseUrl.replace(/\/$/, '');
-            const targetUrl = `${baseUrl}/models/${geminiConfig.textModel}:generateContent`;
-            
-            const geminiRes = await fetch(targetUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-goog-api-key': geminiConfig.textApiKey,
-                    'http-referer': 'https://cherry-ai.com',
-                    'x-title': 'Cherry Studio',
-                },
-                body: JSON.stringify({
+            const geminiJson = await callGeminiApi(
+                geminiConfig,
+                geminiConfig.textModel,
+                'streamGenerateContent',
+                {
                     contents: [{ role: "user", parts: [{ text: prompt }] }],
                     generationConfig: { response_mime_type: "application/json" }
-                })
-            });
+                },
+                { alt: 'sse' }
+            );
 
-            if (!geminiRes.ok) throw new Error(`Gemini API Error: ${await geminiRes.text()}`);
-            
-            const geminiJson = await geminiRes.json();
             const rawText = geminiJson.candidates?.[0]?.content?.parts?.[0]?.text;
             
             if (!rawText) throw new Error("No content generated");

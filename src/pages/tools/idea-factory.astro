@@ -1,0 +1,26 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import IdeaFactoryComponent from '../../components/tools/IdeaFactory/index';
+---
+
+<Layout title="Project Idea Factory">
+    <div class="h-screen w-full bg-zinc-50/50 p-6 flex flex-col overflow-hidden">
+        {/* Breadcrumb / Header */}
+        <div class="mb-6 flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-3">
+                <a href="/" class="flex items-center justify-center w-8 h-8 rounded-full bg-white border border-zinc-200 text-zinc-400 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                </a>
+                <div>
+                    <h1 class="text-xl font-bold text-zinc-900 tracking-tight">Idea Factory</h1>
+                    <p class="text-xs text-zinc-500 font-medium">AI-powered brainstorming & asset generation studio</p>
+                </div>
+            </div>
+        </div>
+
+        {/* Main Tool Area */}
+        <div class="flex-1 min-h-0">
+            <IdeaFactoryComponent client:only="react" />
+        </div>
+    </div>
+</Layout>
