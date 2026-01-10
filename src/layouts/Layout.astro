@@ -18,18 +18,21 @@ const { title } = Astro.props;
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<link rel="preconnect" href="https://fonts.googleapis.com">
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+		<!-- Switched to Plus Jakarta Sans for a more modern, geometric look -->
+		<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
 		<ClientRouter />
 	</head>
-	<body class="min-h-screen bg-background font-sans antialiased overflow-y-scroll">
-    <!-- Sophisticated Background Mesh -->
-		<div class="fixed inset-0 -z-10 h-full w-full bg-background">
-      <div class="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-      <div class="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-primary/20 opacity-20 blur-[100px]"></div>
-      <div class="absolute right-0 bottom-0 -z-10 h-[400px] w-[400px] rounded-full bg-secondary/80 opacity-20 blur-[120px]"></div>
+	<body class="min-h-screen bg-zinc-50/50 font-sans antialiased text-zinc-900 selection:bg-primary/20 selection:text-primary">
+    
+    <!-- Sophisticated Ambient Background -->
+    <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+      <div class="absolute -top-[20%] -left-[10%] w-[70vw] h-[70vw] rounded-full bg-indigo-200/20 blur-[120px] mix-blend-multiply animate-pulse duration-10000"></div>
+      <div class="absolute -bottom-[20%] -right-[10%] w-[60vw] h-[60vw] rounded-full bg-violet-200/20 blur-[100px] mix-blend-multiply"></div>
+      <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmZmIi8+CjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiM5OTkiIG9wYWNpdHk9IjAuMDUiLz4KPC9zdmc+')] opacity-40"></div>
     </div>
+
 		<slot />
 	</body>
 </html>

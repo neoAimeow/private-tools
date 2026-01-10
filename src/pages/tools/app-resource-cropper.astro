@@ -5,24 +5,23 @@ import { ArrowLeft } from 'lucide-react';
 ---
 
 <Layout title="App Resource Cropper - My Dashboard">
-  <main class="container mx-auto px-4 py-8 max-w-7xl">
-    <a 
-      href="/" 
-      class="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground mb-8 transition-colors group"
-    >
-      <ArrowLeft className="w-4 h-4 mr-1 group-hover:-translate-x-1 transition-transform" />
-      Back to Dashboard
-    </a>
-    
-    <div class="mb-12 space-y-4">
-      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent pb-2">
-        App Resource Cropper
-      </h1>
-      <p class="text-xl text-muted-foreground max-w-2xl leading-relaxed">
-        Generate all required app icon sizes and feature graphics from a single source image automatically.
-      </p>
-    </div>
+  <div class="min-h-screen flex flex-col bg-zinc-50/50">
+    <header class="h-14 shrink-0 flex items-center justify-between px-6 border-b border-zinc-200/50 bg-white/50 backdrop-blur-md sticky top-0 z-20">
+      <div class="flex items-center gap-4">
+        <a 
+          href="/" 
+          class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white border border-zinc-200 shadow-sm text-zinc-500 hover:text-zinc-900 hover:shadow transition-all group"
+          title="Back to Dashboard"
+        >
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+        </a>
+        <div class="h-6 w-px bg-zinc-200"></div>
+        <h1 class="text-sm font-semibold text-zinc-800 tracking-tight">App Resource Cropper</h1>
+      </div>
+    </header>
 
-    <AppResourceCropperComponent client:load />
-  </main>
+    <main class="flex-1 p-6 md:p-10">
+      <AppResourceCropperComponent client:only="react" />
+    </main>
+  </div>
 </Layout>

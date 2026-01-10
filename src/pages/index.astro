@@ -20,57 +20,62 @@ const data = links as Category[];
 ---
 
 <Layout title="Dashboard">
-  <main class="container mx-auto px-4 pb-24 max-w-7xl">
-    {/* Sticky Glass Header */}
-    <header class="sticky top-6 z-50 mx-auto max-w-3xl rounded-full bg-background/80 backdrop-blur-xl border border-border/40 shadow-sm flex items-center justify-between px-5 py-2.5 mb-20 transition-all duration-300 hover:shadow-md hover:border-border/60">
+  <main class="container mx-auto px-4 pb-32 max-w-7xl relative z-10">
+    
+    {/* Header */}
+    <header class="flex items-center justify-between py-8 mb-16 animate-fade-in">
       <div class="flex items-center gap-3 select-none">
-        <div class="w-9 h-9 bg-primary text-primary-foreground rounded-lg flex items-center justify-center font-bold text-lg shadow-sm">M</div>
-        <span class="font-semibold text-foreground tracking-tight">My Space</span>
+        <div class="w-10 h-10 bg-gradient-to-br from-zinc-900 to-zinc-700 text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-lg shadow-zinc-200">M</div>
+        <span class="font-semibold text-zinc-800 tracking-tight text-lg">My Space</span>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-4">
          <HeaderAuth client:load />
-         <div class="w-px h-5 bg-border mx-2"></div>
+         <div class="w-px h-5 bg-zinc-200"></div>
          <GlobalSettings client:load />
       </div>
     </header>
 
     {/* Hero Section */}
-    <div class="text-center mb-24 animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <h1 class="text-5xl md:text-6xl font-extrabold tracking-tight text-foreground mb-6">
-        Welcome Back
+    <div class="text-center mb-32 animate-slide-up">
+      <h1 class="text-5xl md:text-7xl font-bold tracking-tight text-zinc-900 mb-8 leading-tight">
+        What are we <br/>
+        <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 animate-gradient-x">building today?</span>
       </h1>
-      <p class="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed">
-        What would you like to build today?
+      <p class="text-xl text-zinc-500 mb-12 max-w-2xl mx-auto leading-relaxed font-light">
+        Access your development tools, resources, and generators in one unified workspace.
       </p>
       
-      <div class="relative max-w-lg mx-auto group">
-        <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5 transition-colors group-focus-within:text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        <input 
-          type="text" 
-          id="search-input" 
-          placeholder="Search tools... (Press '/')" 
-          autocomplete="off" 
-          class="h-12 w-full rounded-full border border-input bg-background px-12 py-3 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 shadow-sm transition-all hover:shadow-md hover:border-ring/30"
-        />
-        <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none hidden sm:flex h-6 select-none items-center gap-1 rounded border bg-muted px-2 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
-          <span class="text-xs">/</span>
+      <div class="relative max-w-xl mx-auto group">
+        <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full opacity-20 group-hover:opacity-40 blur transition duration-500"></div>
+        <div class="relative flex items-center bg-white rounded-full shadow-xl shadow-indigo-100/50">
+          <svg class="ml-6 w-5 h-5 text-zinc-400 group-focus-within:text-indigo-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input 
+            type="text" 
+            id="search-input" 
+            placeholder="Search tools... (Press '/')" 
+            autocomplete="off" 
+            class="w-full bg-transparent border-0 rounded-full px-4 py-5 text-lg text-zinc-800 placeholder:text-zinc-400 focus:ring-0 focus:outline-none"
+          />
+          <div class="mr-4 hidden sm:flex h-7 select-none items-center gap-1 rounded bg-zinc-100 px-2.5 font-mono text-[10px] font-medium text-zinc-500">
+            /
+          </div>
         </div>
       </div>
     </div>
 
     {/* Content Grid */}
-    <div id="content-wrapper" class="space-y-16">
+    <div id="content-wrapper" class="space-y-24">
       {data.map((cat, index) => (
         <section 
-          class="category-section animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-backwards" 
-          style={`animation-delay: ${index * 100}ms`} 
+          class="category-section animate-slide-up fill-mode-backwards" 
+          style={`animation-delay: ${index * 150}ms`} 
           data-category={cat.category.toLowerCase()}
         >
-          <div class="flex items-center gap-6 mb-8">
-            <h2 class="text-xs font-bold uppercase tracking-widest text-muted-foreground whitespace-nowrap">
+          <div class="flex items-center gap-4 mb-8">
+            <h2 class="text-sm font-bold uppercase tracking-widest text-zinc-400 whitespace-nowrap px-2">
               {cat.category}
             </h2>
-            <div class="h-px flex-1 bg-border/50"></div>
+            <div class="h-px flex-1 bg-gradient-to-r from-zinc-200 to-transparent"></div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {cat.links.map((link) => (
@@ -82,15 +87,15 @@ const data = links as Category[];
         </section>
       ))}
       
-      <div id="no-results" class="hidden flex-col items-center justify-center py-32 text-center animate-in fade-in zoom-in-95 duration-300">
-        <div class="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mb-6 text-3xl opacity-50">
+      <div id="no-results" class="hidden flex-col items-center justify-center py-32 text-center animate-fade-in">
+        <div class="w-20 h-20 bg-zinc-50 rounded-full flex items-center justify-center mb-6 text-4xl opacity-50 shadow-inner">
           🔍
         </div>
-        <h3 class="text-xl font-semibold mb-2">No matches found</h3>
-        <p class="text-muted-foreground mb-8 max-w-sm mx-auto">
-          Try searching for something else or clear the filter.
+        <h3 class="text-xl font-semibold text-zinc-900 mb-2">No matches found</h3>
+        <p class="text-zinc-500 mb-8 max-w-sm mx-auto">
+          We couldn't find any tools matching your search.
         </p>
-        <button id="clear-search" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+        <button id="clear-search" class="inline-flex items-center justify-center rounded-full text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-zinc-200 bg-white hover:bg-zinc-50 hover:border-zinc-300 text-zinc-700 h-10 px-6 shadow-sm hover:shadow">
           Clear Search
         </button>
       </div>
@@ -99,7 +104,6 @@ const data = links as Category[];
 </Layout>
 
 <script>
-  // Search Functionality
   const searchInput = document.getElementById('search-input') as HTMLInputElement;
   const categories = document.querySelectorAll('.category-section');
   const noResults = document.getElementById('no-results');
@@ -125,7 +129,6 @@ const data = links as Category[];
         }
       });
 
-      // Hide empty categories
       (catSection as HTMLElement).style.display = hasVisibleCardsInCat ? 'block' : 'none';
     });
 
@@ -148,7 +151,6 @@ const data = links as Category[];
     searchInput.focus();
   });
 
-  // Keyboard shortcut '/'
   document.addEventListener('keydown', (e) => {
     if (e.key === '/' && document.activeElement !== searchInput) {
       e.preventDefault();

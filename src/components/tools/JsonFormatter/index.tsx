@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { Card, CardHeader, CardContent, CardTitle } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Textarea } from '../../ui/textarea';
-import { ArrowRight, Trash2, FileJson, Minimize2, Copy, Check } from 'lucide-react';
+import { ArrowRight, Trash2, FileJson, Minimize2, Copy, Check, Braces, AlignLeft } from 'lucide-react';
 
 export default function JsonFormatter() {
   const [input, setInput] = useState('');
@@ -46,78 +45,70 @@ export default function JsonFormatter() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 h-[calc(100vh-220px)] min-h-[600px] w-full max-w-[1400px] mx-auto p-1 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="flex flex-col md:flex-row h-[calc(100vh-140px)] min-h-[600px] w-full gap-4 md:gap-6 animate-slide-up">
+      
       {/* Input Pane */}
-      <Card className="flex-1 flex flex-col shadow-md border-border/60 overflow-hidden bg-card/50 backdrop-blur-sm">
-        <CardHeader className="py-3 px-4 border-b border-border/40 bg-muted/20 flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-            <FileJson className="w-4 h-4 text-primary" />
-            Input JSON
-          </CardTitle>
-          <div className="text-[10px] font-mono text-muted-foreground">
-            {input.length} chars
+      <div className="flex-1 flex flex-col bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden group focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+        <div className="h-10 bg-zinc-50 border-b border-zinc-100 flex items-center justify-between px-4 shrink-0">
+          <div className="flex items-center gap-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+            <AlignLeft className="w-3.5 h-3.5" /> Input
           </div>
-        </CardHeader>
-        <CardContent className="flex-1 p-0 relative">
+          <div className="flex items-center gap-2">
+             <span className="text-[10px] font-mono text-zinc-400">{input.length} chars</span>
+             <button onClick={clear} className="p-1 hover:bg-zinc-200 rounded text-zinc-400 hover:text-red-500 transition-colors" title="Clear All">
+                <Trash2 className="w-3.5 h-3.5" />
+             </button>
+          </div>
+        </div>
+        <div className="flex-1 relative bg-white">
           <Textarea 
-            className="w-full h-full min-h-full resize-none border-0 focus-visible:ring-0 rounded-none p-4 font-mono text-sm leading-relaxed bg-transparent"
-            placeholder='Paste your JSON here... {"key": "value"}'
+            className="absolute inset-0 w-full h-full resize-none border-0 focus-visible:ring-0 p-4 font-mono text-sm leading-relaxed text-zinc-700 placeholder:text-zinc-300"
+            placeholder='Paste JSON here... {"key": "value"}'
             value={input}
             onChange={(e) => setInput(e.target.value)}
             spellCheck={false}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Controls */}
-      <div className="flex flex-row md:flex-col justify-center gap-3 shrink-0 py-2">
-        <Button onClick={format} variant="default" className="shadow-sm w-full md:w-auto" title="Format JSON">
-          <span className="hidden md:inline mr-2">Format</span> <ArrowRight className="w-4 h-4" />
+      {/* Actions Toolbar (Vertical on Desktop) */}
+      <div className="flex flex-row md:flex-col justify-center gap-2 shrink-0">
+        <Button onClick={format} className="shadow-sm bg-indigo-600 hover:bg-indigo-700 text-white h-10 md:w-12 md:h-12 rounded-xl" title="Format">
+          <Braces className="w-5 h-5" />
         </Button>
-        <Button onClick={minify} variant="secondary" className="shadow-sm w-full md:w-auto" title="Minify JSON">
-           <span className="hidden md:inline mr-2">Minify</span> <Minimize2 className="w-4 h-4" />
-        </Button>
-        <div className="h-px w-full bg-border/60 hidden md:block my-2" />
-        <Button onClick={clear} variant="ghost" size="icon" className="shadow-sm hover:bg-destructive/10 hover:text-destructive transition-colors md:w-10 md:h-10 w-full" title="Clear All">
-          <Trash2 className="w-4 h-4" />
+        <Button onClick={minify} variant="secondary" className="shadow-sm bg-white hover:bg-zinc-50 border border-zinc-200 text-zinc-700 h-10 md:w-12 md:h-12 rounded-xl" title="Minify">
+           <Minimize2 className="w-5 h-5" />
         </Button>
       </div>
 
       {/* Output Pane */}
-      <Card className="flex-1 flex flex-col shadow-md border-border/60 overflow-hidden bg-card/50 backdrop-blur-sm">
-        <CardHeader className="py-3 px-4 border-b border-border/40 bg-muted/20 flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-            Output
-          </CardTitle>
+      <div className="flex-1 flex flex-col bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden relative group">
+        <div className="h-10 bg-zinc-50 border-b border-zinc-100 flex items-center justify-between px-4 shrink-0">
+          <div className="flex items-center gap-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+            <FileJson className="w-3.5 h-3.5" /> Output
+          </div>
           <Button 
             variant="ghost" 
             size="sm" 
-            className="h-6 px-2 text-xs"
+            className={`h-7 px-2 text-xs gap-1.5 ${copied ? 'text-emerald-600 bg-emerald-50' : 'text-zinc-500 hover:text-zinc-900'}`}
             onClick={copyToClipboard}
             disabled={!output}
           >
-            {copied ? (
-                <>
-                    <Check className="w-3 h-3 mr-1 text-green-500" /> Copied
-                </>
-            ) : (
-                <>
-                    <Copy className="w-3 h-3 mr-1" /> Copy
-                </>
-            )}
+            {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+            {copied ? 'Copied' : 'Copy'}
           </Button>
-        </CardHeader>
-        <CardContent className={`flex-1 p-0 relative ${error ? 'bg-destructive/5' : 'bg-muted/5'}`}>
+        </div>
+        <div className={`flex-1 relative ${error ? 'bg-red-50/50' : 'bg-zinc-50/30'}`}>
           <Textarea 
             readOnly
-            className={`w-full h-full min-h-full resize-none border-0 focus-visible:ring-0 rounded-none p-4 font-mono text-sm leading-relaxed bg-transparent ${
-              error ? 'text-destructive' : 'text-foreground'
+            className={`absolute inset-0 w-full h-full resize-none border-0 focus-visible:ring-0 p-4 font-mono text-sm leading-relaxed ${
+              error ? 'text-red-600' : 'text-zinc-700'
             }`}
             value={error ? `Error: ${error}` : output}
-            placeholder="Result will appear here..."
+            placeholder="Result..."
           />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
