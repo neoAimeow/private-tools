@@ -46,6 +46,7 @@ export default function AppGenerator() {
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   // Repo Selection State
   const [repoModalOpen, setRepoModalOpen] = useState(false);
@@ -98,14 +99,8 @@ export default function AppGenerator() {
 
   const handleCreate = async () => {
     if (!user) return;
-    setLoading(true);
-    try {
-        const now = new Date().toISOString();
-        const docRef = await addDoc(collection(db, "solvin-apps"), {
-            ...INITIAL_DATA, ownerId: user.uid, name: 'Untitled Project', createdAt: now, updatedAt: now
-        });
-        handleSelect({ id: docRef.id, ...INITIAL_DATA, name: 'Untitled Project' } as AppData);
-    } catch(e) { toast.error(e instanceof Error ? e.message : String(e)); } finally { setLoading(false); }
+    setIsCreating(true);
+    fetchRepos();
   };
 
   const handleSave = async () => {
@@ -113,7 +108,7 @@ export default function AppGenerator() {
       setLoading(true);
       try {
           await updateDoc(doc(db, "solvin-apps", selectedAppId), { ...data, updatedAt: new Date().toISOString() });
-      } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); } finally { setLoading(false); }
+      } catch (e) { alert(e); } finally { setLoading(false); }
   };
 
 
