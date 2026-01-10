@@ -133,7 +133,7 @@ export default function AppGenerator() {
     setGenerating(true);
     try {
         const config = getGeminiConfig();
-        const prompt = `You are an expert ASO Copywriter. Analyze this project: ${JSON.stringify(ctx).slice(0, 5000)}. 
+        const prompt = `You are an expert ASO Copywriter. Analyze this project: ${JSON.stringify(ctx)}. 
         Generate JSON for Apple/Google stores. App Name: ${data.name}. 
         Return strictly JSON: { "promoText": "...", "description": "...", "keywords": "...", "shortDescription": "...", "fullDescription": "..." }`;
         
@@ -167,9 +167,11 @@ export default function AppGenerator() {
     <div className="flex h-full w-full bg-white rounded-xl shadow-2xl border border-zinc-200/50 overflow-hidden text-sm">
         {/* SIDEBAR */}
         <div className="w-64 bg-zinc-50/50 border-r border-zinc-100 flex flex-col shrink-0">
-            <div className="p-4 border-b border-zinc-100 flex items-center justify-between sticky top-0 bg-zinc-50/80 backdrop-blur z-10">
-                <span className="font-semibold text-zinc-500 text-xs uppercase tracking-wider">Projects</span>
-                <button onClick={handleCreate} className="p-1 hover:bg-zinc-200 rounded text-zinc-600 transition-colors"><Plus className="w-4 h-4"/></button>
+            <div className="p-4 border-b border-border/40 bg-muted/20 flex items-center justify-between">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Listing Studio</h2>
+                <Button variant="ghost" size="icon" onClick={handleCreate} title="New App" className="h-7 w-7 hover:bg-primary/10 hover:text-primary">
+                    <Plus className="h-4 w-4" />
+                </Button>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
                 {apps.map(app => (

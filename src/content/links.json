@@ -2,26 +2,26 @@
   {
     "category": "Daily",
     "links": [
-      { "title": "Google", "url": "https://google.com", "desc": "Search engine" },
-      { "title": "GitHub", "url": "https://github.com", "desc": "Code hosting" }
+      { "title": "Google", "url": "https://google.com", "desc": "Search engine", "icon": "Search" },
+      { "title": "GitHub", "url": "https://github.com", "desc": "Code hosting", "icon": "Github" }
     ]
   },
   {
     "category": "Dev & Monetization",
     "links": [
-      { "title": "Apple Developer", "url": "https://developer.apple.com", "desc": "Resources for building Apple apps" },
-      { "title": "RevenueCat", "url": "https://revenuecat.com", "desc": "In-App Subscriptions Infrastructure" },
-      { "title": "AdMob", "url": "https://admob.google.com", "desc": "Mobile App Monetization" },
-      { "title": "PingPong", "url": "https://pingpongx.com", "desc": "Cross-border payments for business" }
+      { "title": "Apple Developer", "url": "https://developer.apple.com", "desc": "Resources for building Apple apps", "icon": "AppWindow" },
+      { "title": "RevenueCat", "url": "https://revenuecat.com", "desc": "In-App Subscriptions Infrastructure", "icon": "Coins" },
+      { "title": "AdMob", "url": "https://admob.google.com", "desc": "Mobile App Monetization", "icon": "Megaphone" },
+      { "title": "PingPong", "url": "https://pingpongx.com", "desc": "Cross-border payments for business", "icon": "CreditCard" }
     ]
   },
   {
     "category": "Tools",
     "links": [
-      { "title": "Text Reflower", "url": "/tools/text-reflower", "desc": "Fix PDF line breaks & formatting" },
-      { "title": "JSON Formatter", "url": "/tools/json", "desc": "Format and validate JSON" },
-      { "title": "App Resource Cropper", "url": "/tools/app-resource-cropper", "desc": "Generate App Store assets" },
-      { "title": "Solvin App Tools", "url": "/tools/app-generator", "desc": "ASO Gen & App Management" }
+      { "title": "Text Reflower", "url": "/tools/text-reflower", "desc": "Fix PDF line breaks & formatting", "icon": "Pilcrow" },
+      { "title": "JSON Formatter", "url": "/tools/json", "desc": "Format and validate JSON", "icon": "Braces" },
+      { "title": "App Resource Cropper", "url": "/tools/app-resource-cropper", "desc": "Generate App Store assets", "icon": "Crop" },
+      { "title": "App Listing Studio", "url": "/tools/app-generator", "desc": "ASO Gen & App Management", "icon": "Rocket" }
     ]
   }
 ]

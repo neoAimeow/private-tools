@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
 @theme {
-  /* Updated Font Stack */
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
@@ -37,13 +36,47 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
   
+  /* Custom Animations for Dialog - Plugin Free */
+  --animate-dialog-in: dialog-in 0.2s ease-out forwards;
+  --animate-dialog-out: dialog-out 0.2s ease-in forwards;
+  --animate-overlay-in: overlay-in 0.2s ease-out forwards;
+  --animate-overlay-out: overlay-out 0.2s ease-in forwards;
+  
   --animate-fade-in: fade-in 0.5s ease-out;
   --animate-slide-up: slide-up 0.5s ease-out;
 }
 
-/* 
-  Modern Zinc Theme with Violet Accents
-*/
+/* Dialog Keyframes - Include Translate to ensure centering */
+@keyframes dialog-in {
+  from { opacity: 0; transform: translate(-50%, -48%) scale(0.96); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes dialog-out {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  to { opacity: 0; transform: translate(-50%, -48%) scale(0.96); }
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes overlay-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
 :root {
   --background: 0 0% 100%;       
   --foreground: 240 10% 3.9%;    
@@ -74,16 +107,6 @@
   --ring: 255 75% 58%;           
 
   --radius: 0.75rem;             
-}
-
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slide-up {
-  from { transform: translateY(10px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
 }
 
 body {
