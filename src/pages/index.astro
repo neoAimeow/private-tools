@@ -20,43 +20,61 @@ const data = links as Category[];
 ---
 
 <Layout title="Dashboard">
-  <main class="container">
+  <main class="container mx-auto px-4 pb-24 max-w-7xl">
     {/* Sticky Glass Header */}
-    <header class="header-nav">
-      <div class="brand">
-        <div class="logo">M</div>
-        <span class="brand-text">My Space</span>
+    <header class="sticky top-6 z-50 mx-auto max-w-3xl rounded-full bg-background/80 backdrop-blur-xl border border-border/40 shadow-sm flex items-center justify-between px-5 py-2.5 mb-20 transition-all duration-300 hover:shadow-md hover:border-border/60">
+      <div class="flex items-center gap-3 select-none">
+        <div class="w-9 h-9 bg-primary text-primary-foreground rounded-lg flex items-center justify-center font-bold text-lg shadow-sm">M</div>
+        <span class="font-semibold text-foreground tracking-tight">My Space</span>
       </div>
-      <div class="header-controls">
+      <div class="flex items-center gap-2">
          <HeaderAuth client:load />
-         <div class="divider"></div>
+         <div class="w-px h-5 bg-border mx-2"></div>
          <GlobalSettings client:load />
       </div>
     </header>
 
     {/* Hero Section */}
-    <div class="hero-section">
-      <h1 class="hero-title">Welcome Back</h1>
-      <p class="hero-subtitle">What would you like to build today?</p>
+    <div class="text-center mb-24 animate-in fade-in slide-in-from-bottom-8 duration-700">
+      <h1 class="text-5xl md:text-6xl font-extrabold tracking-tight text-foreground mb-6">
+        Welcome Back
+      </h1>
+      <p class="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed">
+        What would you like to build today?
+      </p>
       
-      <div class="search-container">
-        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        <input type="text" id="search-input" placeholder="Search tools... (Press '/')" autocomplete="off" />
-        <div class="kbd-shortcut">/</div>
+      <div class="relative max-w-lg mx-auto group">
+        <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-5 h-5 transition-colors group-focus-within:text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input 
+          type="text" 
+          id="search-input" 
+          placeholder="Search tools... (Press '/')" 
+          autocomplete="off" 
+          class="h-12 w-full rounded-full border border-input bg-background px-12 py-3 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 shadow-sm transition-all hover:shadow-md hover:border-ring/30"
+        />
+        <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none hidden sm:flex h-6 select-none items-center gap-1 rounded border bg-muted px-2 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+          <span class="text-xs">/</span>
+        </div>
       </div>
     </div>
 
     {/* Content Grid */}
-    <div id="content-wrapper" class="content-wrapper">
+    <div id="content-wrapper" class="space-y-16">
       {data.map((cat, index) => (
-        <section class="category-section" style={`animation-delay: ${index * 0.1}s`} data-category={cat.category.toLowerCase()}>
-          <div class="cat-header">
-            <h2>{cat.category}</h2>
-            <div class="line"></div>
+        <section 
+          class="category-section animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-backwards" 
+          style={`animation-delay: ${index * 100}ms`} 
+          data-category={cat.category.toLowerCase()}
+        >
+          <div class="flex items-center gap-6 mb-8">
+            <h2 class="text-xs font-bold uppercase tracking-widest text-muted-foreground whitespace-nowrap">
+              {cat.category}
+            </h2>
+            <div class="h-px flex-1 bg-border/50"></div>
           </div>
-          <div class="grid">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {cat.links.map((link) => (
-              <div class="card-wrapper" data-keywords={`${link.title} ${link.desc}`.toLowerCase()}>
+              <div class="card-wrapper h-full" data-keywords={`${link.title} ${link.desc}`.toLowerCase()}>
                 <NavCard {...link} />
               </div>
             ))}
@@ -64,13 +82,17 @@ const data = links as Category[];
         </section>
       ))}
       
-      <div id="no-results" class="hidden">
-        <div class="no-results-content">
-          <div class="icon">🔍</div>
-          <h3>No matches found</h3>
-          <p>Try searching for something else or clear the filter.</p>
-          <button id="clear-search">Clear Search</button>
+      <div id="no-results" class="hidden flex-col items-center justify-center py-32 text-center animate-in fade-in zoom-in-95 duration-300">
+        <div class="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mb-6 text-3xl opacity-50">
+          🔍
         </div>
+        <h3 class="text-xl font-semibold mb-2">No matches found</h3>
+        <p class="text-muted-foreground mb-8 max-w-sm mx-auto">
+          Try searching for something else or clear the filter.
+        </p>
+        <button id="clear-search" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+          Clear Search
+        </button>
       </div>
     </div>
   </main>
@@ -108,7 +130,13 @@ const data = links as Category[];
     });
 
     if (noResults) {
-      noResults.style.display = hasResults ? 'none' : 'flex';
+      if (hasResults) {
+        noResults.classList.add('hidden');
+        noResults.classList.remove('flex');
+      } else {
+        noResults.classList.remove('hidden');
+        noResults.classList.add('flex');
+      }
     }
   }
 
@@ -131,237 +159,3 @@ const data = links as Category[];
     }
   });
 </script>
-
-<style>
-  .container {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 0 2rem 6rem 2rem;
-  }
-  
-  /* Floating Header */
-  .header-nav {
-    position: sticky;
-    top: 1.5rem;
-    z-index: 50;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.6rem 0.8rem 0.6rem 1.2rem;
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-radius: var(--radius-full);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    box-shadow: var(--shadow-sm);
-    margin-bottom: 5rem;
-    transition: all 0.3s ease;
-    max-width: 900px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-    
-    .logo {
-      width: 36px;
-      height: 36px;
-      background: var(--text-primary);
-      color: white;
-      border-radius: var(--radius-sm);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 1.1rem;
-    }
-
-    .brand-text {
-      font-size: 1.05rem;
-      font-weight: 600;
-      color: var(--text-primary);
-      letter-spacing: -0.02em;
-    }
-  }
-
-  .header-controls {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .divider {
-    width: 1px;
-    height: 20px;
-    background: var(--border-strong);
-    opacity: 0.3;
-    margin: 0 0.5rem;
-  }
-
-  /* Hero */
-  .hero-section {
-    text-align: center;
-    margin-bottom: 6rem;
-    animation: fadeUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-
-  .hero-title {
-    font-size: 3.5rem;
-    font-weight: 800;
-    color: var(--text-primary);
-    margin-bottom: 0.75rem;
-    letter-spacing: -0.04em;
-    line-height: 1.1;
-  }
-
-  .hero-subtitle {
-    font-size: 1.25rem;
-    color: var(--text-secondary);
-    margin-bottom: 3rem;
-    font-weight: 400;
-    max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .search-container {
-    position: relative;
-    max-width: 500px;
-    width: 100%;
-    margin: 0 auto;
-    
-    .search-icon {
-      position: absolute;
-      left: 1.5rem;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-tertiary);
-      transition: color 0.2s;
-      width: 20px;
-      height: 20px;
-    }
-
-    input {
-      width: 100%;
-      padding: 1.2rem 1.5rem 1.2rem 3.5rem;
-      background: white;
-      border: 1px solid transparent;
-      border-radius: var(--radius-full);
-      font-size: 1rem;
-      color: var(--text-primary);
-      box-shadow: var(--shadow-md);
-      transition: all 0.3s ease;
-      outline: none;
-
-      &::placeholder {
-        color: var(--text-tertiary);
-      }
-
-      &:focus {
-        box-shadow: var(--shadow-lg), 0 0 0 2px var(--accent-subtle);
-        transform: translateY(-2px);
-        
-        ~ .search-icon {
-          color: var(--accent-primary);
-        }
-      }
-    }
-
-    .kbd-shortcut {
-      position: absolute;
-      right: 1.5rem;
-      top: 50%;
-      transform: translateY(-50%);
-      background: var(--bg-page);
-      border: 1px solid var(--border-strong);
-      border-radius: 6px;
-      padding: 0.2rem 0.5rem;
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      font-weight: 500;
-      pointer-events: none;
-    }
-  }
-
-  /* Categories */
-  .category-section {
-    margin-bottom: 5rem;
-    animation: fadeUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
-  }
-  
-  .cat-header {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-
-    h2 {
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      letter-spacing: 0.15em;
-      color: var(--text-tertiary);
-      font-weight: 700;
-    }
-    
-    .line {
-      height: 1px;
-      background: var(--border-strong);
-      flex: 1;
-      opacity: 0.3;
-    }
-  }
-
-  /* Grid */
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 2rem;
-  }
-
-  /* No Results */
-  #no-results {
-    display: flex;
-    justify-content: center;
-    padding: 8rem 0;
-    
-    &.hidden { display: none !important; }
-
-    .no-results-content {
-      text-align: center;
-      background: white;
-      padding: 3rem 4rem;
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-md);
-      
-      .icon { font-size: 3rem; margin-bottom: 1.5rem; opacity: 0.3; }
-      
-      h3 { margin-bottom: 0.5rem; font-size: 1.2rem; font-weight: 600; }
-      p { font-size: 0.95rem; margin-bottom: 2rem; color: var(--text-secondary); }
-      
-      button {
-        background: var(--bg-page);
-        border: 1px solid var(--border-strong);
-        padding: 0.8rem 1.5rem;
-        border-radius: var(--radius-md);
-        color: var(--text-primary);
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-        
-        &:hover {
-          background: white;
-          box-shadow: var(--shadow-sm);
-          transform: translateY(-1px);
-        }
-      }
-    }
-  }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(30px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-</style>

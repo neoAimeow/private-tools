@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Sparkles, Save, Apple, Play, Plus, Loader2, Smartphone } from 'lucide-react';
+import { Sparkles, Save, Apple, Play, Plus, Loader2, Smartphone, Search, AlertCircle, FileText } from 'lucide-react';
 
 interface AppData {
   id?: string;
@@ -38,6 +38,7 @@ const INITIAL_DATA: AppData = {
 export default function AppGenerator() {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [apps, setApps] = useState<AppData[]>([]);
 
@@ -46,8 +47,7 @@ export default function AppGenerator() {
   const [loading, setLoading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [view, setView] = useState<'list' | 'detail'>('list');
-
+  
   // Auth Listener
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -65,16 +65,13 @@ export default function AppGenerator() {
         return;
     }
 
-    // Filter by ownerId
     const q = query(
         collection(db, "solvin-apps"), 
         where("ownerId", "==", user.uid)
-        // orderBy("name") // Removed to avoid index issues for now
     );
     
     const unsub = onSnapshot(q, (snapshot) => {
         const list: AppData[] = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as AppData));
-        // Sort in memory
         list.sort((a, b) => {
             if (a.updatedAt && b.updatedAt) {
                 return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
@@ -89,37 +86,24 @@ export default function AppGenerator() {
     return () => unsub();
   }, [user, authLoading]);
 
-  if (authLoading) return <div className={styles.loadingOverlay}><div className={styles.spinner}></div></div>;
-
-  if (!user) {
-      return (
-          <div className={styles.emptyState} style={{height: '60vh'}}>
-              <h3>Login Required</h3>
-              <p>Please sign in from the top right corner to access your apps.</p>
-          </div>
-      );
-  }
-
   // Handle URL ID
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get('id');
     if (id) {
         setSelectedAppId(id);
-        setView('detail');
-        // Fetch specific doc
+        // Fetch specific doc if not in list yet (though list usually loads fast)
         getDoc(doc(db, "solvin-apps", id)).then(snap => {
             if (snap.exists()) {
                 setData({ id: snap.id, ...snap.data() } as AppData);
             }
         });
     } else {
-        setView('list');
         setSelectedAppId(null);
     }
   }, []);
 
-  // Effect to sync selected app data when apps list updates or selection changes
+  // Sync selected app data
   useEffect(() => {
     if (selectedAppId && apps.length > 0) {
         const app = apps.find(a => a.id === selectedAppId);
@@ -130,25 +114,21 @@ export default function AppGenerator() {
   }, [selectedAppId, apps]);
 
   const handleSelect = (app: AppData) => {
-    // Update URL without reload
     const url = new URL(window.location.href);
     url.searchParams.set('id', app.id!);
     window.history.pushState({}, '', url);
-    
     setSelectedAppId(app.id!);
-    setView('detail');
   };
 
   const handleCreate = async () => {
     if (!user) return;
     setLoading(true);
     try {
-        // Create empty doc immediately
         const now = new Date().toISOString();
         const docRef = await addDoc(collection(db, "solvin-apps"), {
             ...INITIAL_DATA,
             ownerId: user.uid,
-            name: 'New Untitled App', // Give it a placeholder name so it's visible
+            name: 'New Untitled App', 
             createdAt: now,
             updatedAt: now
         });
@@ -158,8 +138,6 @@ export default function AppGenerator() {
         window.history.pushState({}, '', url);
 
         setSelectedAppId(docRef.id);
-        // Data will auto-update via snapshot listener -> useEffect
-        setView('detail');
     } catch(e) {
         console.error("Create failed:", e);
         alert('Failed to create draft: ' + e);
@@ -168,15 +146,6 @@ export default function AppGenerator() {
     }
   };
 
-  const handleBack = () => {
-    const url = new URL(window.location.href);
-    url.searchParams.delete('id');
-    window.history.pushState({}, '', url);
-    setView('list');
-    setSelectedAppId(null);
-  };
-
-  // Helper to save data
   const saveDataToFirestore = async (newData: AppData) => {
       if (!selectedAppId) return;
       await updateDoc(doc(db, "solvin-apps", selectedAppId), { 
@@ -189,7 +158,6 @@ export default function AppGenerator() {
     try {
         setLoading(true);
         await saveDataToFirestore(data);
-        alert('Saved!');
     } catch (e) {
         alert('Error saving: ' + (e as Error).message);
     } finally {
@@ -197,35 +165,30 @@ export default function AppGenerator() {
     }
   };
 
-  // 1. Analyze Project (Local or GitHub)
   const analyzeProject = async () => {
     if (!data.localPath) return alert('Please enter a GitHub Repo or Local Path first');
     setAnalyzing(true);
-    
-    // Get config for token
     const config = getGeminiConfig();
 
     try {
         const res = await fetch('/api/analyze-project', {
             method: 'POST',
-            body: JSON.stringify({ 
+            body: JSON.stringify({
                 projectPath: data.localPath,
-                githubToken: config.githubToken // Pass token if set
+                githubToken: config.githubToken
             })
         });
         const context = await res.json();
         
         if (context.error) throw new Error(context.error);
         
-        // Auto-fill name if empty
         if (!data.name && context.packageJson?.name) {
             const newName = context.packageJson.name;
             setData(prev => ({ ...prev, name: newName }));
-            // Also auto-save the name discovery
             saveDataToFirestore({ ...data, name: newName });
         }
 
-        return context; // Return for generator to use
+        return context;
     } catch (e) {
         alert('Analysis failed: ' + (e as Error).message);
         return null;
@@ -234,7 +197,6 @@ export default function AppGenerator() {
     }
   };
 
-  // 2. Generate Text (ASO)
   const generateCopy = async () => {
     const context = await analyzeProject();
     if (!context) return;
@@ -275,12 +237,11 @@ export default function AppGenerator() {
              baseUrl += '/v1beta';
         }
         
-        // Use streamGenerateContent?alt=sse for better compatibility
         const url = `${baseUrl}/models/${config.textModel}:streamGenerateContent?alt=sse`;
         
         const response = await fetch(url, {
             method: 'POST',
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
                 'x-goog-api-key': config.textApiKey,
                 'Accept': '*/*',
@@ -295,7 +256,6 @@ export default function AppGenerator() {
         
         if (!response.ok) throw new Error(`API Error: ${response.status}`);
 
-        // Simple SSE parser for non-streaming UI (accumulate all text)
         const reader = response.body?.getReader();
         const decoder = new TextDecoder();
         let fullText = '';
@@ -311,24 +271,16 @@ export default function AppGenerator() {
                         const json = JSON.parse(line.substring(6));
                         const textPart = json.candidates?.[0]?.content?.parts?.[0]?.text;
                         if (textPart) fullText += textPart;
-                    } catch (e) { /* ignore keep-alive or malformed */ }
+                    } catch (e) { } // ignore keep-alive or malformed
                 }
             }
         }
         
-        // Clean markdown code blocks if present
         const jsonStr = fullText.replace(/```json/g, '').replace(/```/g, '').trim();
         const generated = JSON.parse(jsonStr);
 
-        const finalData = {
-            ...data,
-            ...generated
-        };
-
-        // Update UI
+        const finalData = { ...data, ...generated };
         setData(finalData);
-        
-        // Auto Save
         await saveDataToFirestore(finalData);
         
     } catch (e) {
@@ -338,35 +290,27 @@ export default function AppGenerator() {
     }
   };
 
-  // ... (previous code remains the same up to render) ...
-
-  if (authLoading) return <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
+  if (authLoading) return <div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
 
   if (!user) {
       return (
-          <div className="flex h-[60vh] flex-col items-center justify-center rounded-xl border border-dashed bg-muted/50 text-center p-8">
-              <h3 className="text-xl font-semibold">Login Required</h3>
-              <p className="text-muted-foreground mt-2 mb-6">Please sign in from the top right corner to access your apps.</p>
+          <div className="flex h-[60vh] flex-col items-center justify-center rounded-xl border border-dashed bg-muted/30 text-center p-8 animate-in fade-in zoom-in-95 duration-500">
+              <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mb-6">
+                <AlertCircle className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Login Required</h3>
+              <p className="text-muted-foreground max-w-sm mx-auto mb-6">Please sign in from the top right corner to access your projects.</p>
           </div>
       );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-6 h-[calc(100vh-8rem)]">
-        {/* Hidden File Input */}
-        <input 
-            type="file" 
-            ref={fileInputRef} 
-            // onChange={handleFileUpload} 
-            accept="image/*" 
-            style={{ display: 'none' }} 
-        />
-        
+    <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-6 h-full animate-in fade-in slide-in-from-bottom-4 duration-700">
         {/* Sidebar */}
-        <Card className="flex flex-col h-full overflow-hidden border-border/50 bg-background/50 backdrop-blur-xl">
-            <div className="p-4 border-b flex items-center justify-between">
-                <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">My Apps</h2>
-                <Button variant="ghost" size="icon" onClick={handleCreate} title="New App" className="h-8 w-8">
+        <Card className="flex flex-col h-full overflow-hidden border-border/60 bg-card/50 backdrop-blur-sm shadow-sm">
+            <div className="p-4 border-b border-border/40 bg-muted/20 flex items-center justify-between">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">My Apps</h2>
+                <Button variant="ghost" size="icon" onClick={handleCreate} title="New App" className="h-7 w-7 hover:bg-primary/10 hover:text-primary">
                     <Plus className="h-4 w-4" />
                 </Button>
             </div>
@@ -376,24 +320,26 @@ export default function AppGenerator() {
                     <div 
                         key={app.id} 
                         className={`
-                            flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all border
+                            group flex items-center gap-3 p-3 rounded-md cursor-pointer transition-all border
                             ${selectedAppId === app.id 
-                                ? 'bg-background border-border shadow-sm ring-1 ring-ring/10' 
+                                ? 'bg-background border-border/60 shadow-sm ring-1 ring-primary/5' 
                                 : 'border-transparent hover:bg-muted/50 hover:border-border/30 text-muted-foreground'}
                         `}
                         onClick={() => handleSelect(app)}
                     >
-                        <div className={`
-                            flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-bold
-                            ${selectedAppId === app.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}
-                        `}>
-                            {app.name[0]?.toUpperCase() || '?'}
+                        <div className={
+                            `flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-bold transition-colors
+                            ${selectedAppId === app.id 
+                                ? 'bg-primary text-primary-foreground shadow-sm' 
+                                : 'bg-muted text-muted-foreground group-hover:bg-primary/20 group-hover:text-primary'}`
+                        }>
+                            {app.name ? app.name[0].toUpperCase() : '?'}
                         </div>
                         <div className="flex flex-col overflow-hidden">
                             <span className={`text-sm font-medium truncate ${selectedAppId === app.id ? 'text-foreground' : ''}`}>
                                 {app.name || 'Untitled App'}
                             </span>
-                            <span className="text-xs text-muted-foreground truncate">
+                            <span className="text-[10px] text-muted-foreground/70 truncate">
                                 {app.updatedAt ? new Date(app.updatedAt).toLocaleDateString() : 'No date'}
                             </span>
                         </div>
@@ -402,7 +348,8 @@ export default function AppGenerator() {
                 {apps.length === 0 && (
                     <div className="flex flex-col items-center justify-center h-40 text-center text-muted-foreground p-4">
                         <Smartphone className="h-8 w-8 mb-2 opacity-20" />
-                        <span className="text-xs">No apps yet. Click + to create one.</span>
+                        <span className="text-xs">No apps found.</span>
+                        <Button variant="link" size="sm" onClick={handleCreate} className="text-xs mt-1">Create one?</Button>
                     </div>
                 )}
             </div>
@@ -411,177 +358,181 @@ export default function AppGenerator() {
         {/* Main Content */}
         <div className="flex flex-col h-full overflow-hidden">
             {!selectedAppId ? (
-                <Card className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-muted/10 border-dashed">
-                    <Smartphone className="h-16 w-16 text-muted-foreground/20 mb-4" />
-                    <h3 className="text-lg font-semibold">Select an App</h3>
-                    <p className="text-muted-foreground max-w-xs mt-2 mb-6">Choose an app from the sidebar or create a new one to get started.</p>
-                    <Button onClick={handleCreate}>Create New App</Button>
+                <Card className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-muted/10 border-dashed border-2 shadow-none">
+                    <div className="w-20 h-20 bg-background rounded-full flex items-center justify-center mb-6 shadow-sm">
+                        <Smartphone className="h-10 w-10 text-muted-foreground/40" />
+                    </div>
+                    <h3 className="text-xl font-semibold mb-2">Select an App</h3>
+                    <p className="text-muted-foreground max-w-xs mx-auto mb-8 text-sm">Choose an app from the sidebar to manage its metadata or create a new one to get started.</p>
+                    <Button onClick={handleCreate} className="shadow-sm">Create New App</Button>
                 </Card>
             ) : (
                 <>
                     {/* Top Bar */}
-                    <div className="flex items-center justify-between mb-6 px-1">
+                    <div className="flex items-center justify-between mb-4 px-1 shrink-0">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span>Apps</span>
-                            <span className="text-border">/</span>
-                            <span className="font-semibold text-foreground bg-background px-2 py-0.5 rounded border shadow-sm">
-                                {data.name || 'Untitled'}
-                            </span>
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/30 border border-border/40">
+                                <FileText className="w-3.5 h-3.5" />
+                                <span className="font-medium text-foreground">
+                                    {data.name || 'Untitled'}
+                                </span>
+                            </div>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex gap-2">
                              <Button 
-                                variant="outline" 
+                                variant="outline"
+                                size="sm"
                                 onClick={generateCopy} 
                                 disabled={analyzing || generating} 
-                                className="gap-2 bg-background/50 backdrop-blur-sm border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50/50 dark:hover:bg-indigo-950/30 text-indigo-600 dark:text-indigo-300"
+                                className="gap-2 bg-indigo-50/50 hover:bg-indigo-100/50 text-indigo-700 border-indigo-200 hover:border-indigo-300 shadow-sm"
                             >
-                                {analyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : 
-                                 generating ? <Loader2 className="h-4 w-4 animate-spin" /> : 
-                                 <Sparkles className="h-4 w-4" />}
-                                {analyzing ? 'Analyzing...' : generating ? 'Writing...' : 'Auto-Generate'}
+                                {analyzing || generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                                <span className="hidden sm:inline">{analyzing ? 'Analyzing...' : generating ? 'Writing...' : 'Auto-Generate'}</span>
                             </Button>
-                            <Button onClick={handleSave} disabled={loading} className="gap-2">
-                                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                                {loading ? 'Saving...' : 'Save Changes'}
+                            <Button size="sm" onClick={handleSave} disabled={loading} className="gap-2 shadow-sm min-w-[100px]">
+                                {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                                {loading ? 'Saving...' : 'Save'}
                             </Button>
                         </div>
                     </div>
 
                     {/* Scrollable Form Area */}
-                    <div className="flex-1 overflow-y-auto pr-2 -mr-2 pb-20">
-                        <div className="grid gap-6">
-                            
-                            {/* Project Identity */}
-                            <Card>
-                                <CardHeader className="pb-4">
-                                    <CardTitle className="text-base">Project Identity</CardTitle>
-                                    <CardDescription>Core details about your application.</CardDescription>
-                                </CardHeader>
-                                <CardContent className="grid gap-6">
-                                    <div className="grid md:grid-cols-2 gap-6">
-                                        <div className="space-y-2">
-                                            <Label>App Name</Label>
-                                            <Input 
-                                                value={data.name} 
-                                                onChange={e => setData({...data, name: e.target.value})} 
-                                                placeholder="e.g. Super ToDo" 
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>GitHub Repo / Local Path</Label>
+                    <div className="flex-1 overflow-y-auto pr-2 -mr-2 pb-6 space-y-6">
+                        
+                        {/* Project Identity */}
+                        <Card className="border-border/60 bg-card/50 backdrop-blur-sm shadow-sm">
+                            <CardHeader className="pb-4 border-b border-border/40 bg-muted/20">
+                                <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Project Identity</CardTitle>
+                            </CardHeader>
+                            <CardContent className="grid gap-6 p-6">
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-semibold text-muted-foreground uppercase">App Name</Label>
+                                        <Input 
+                                            value={data.name} 
+                                            onChange={e => setData({...data, name: e.target.value})} 
+                                            placeholder="e.g. Super ToDo" 
+                                            className="font-medium"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-semibold text-muted-foreground uppercase">GitHub Repo / Local Path</Label>
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                                             <Input 
                                                 value={data.localPath} 
                                                 onChange={e => setData({...data, localPath: e.target.value})} 
-                                                placeholder="owner/repo (e.g. facebook/react)" 
+                                                placeholder="owner/repo" 
+                                                className="pl-9 font-mono text-sm"
                                             />
                                         </div>
                                     </div>
-                                    
-                                    <div className="grid md:grid-cols-2 gap-6">
-                                        <div className="space-y-2">
-                                            <Label>Support URL</Label>
-                                            <Input 
-                                                value={data.supportUrl} 
-                                                onChange={e => setData({...data, supportUrl: e.target.value})} 
-                                                placeholder="https://..." 
-                                            />
+                                </div>
+                                
+                                <div className="grid md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-semibold text-muted-foreground uppercase">Support URL</Label>
+                                        <Input 
+                                            value={data.supportUrl} 
+                                            onChange={e => setData({...data, supportUrl: e.target.value})} 
+                                            placeholder="https://..." 
+                                            className="font-mono text-sm"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label className="text-xs font-semibold text-muted-foreground uppercase">Marketing URL</Label>
+                                        <Input 
+                                            value={data.marketingUrl} 
+                                            onChange={e => setData({...data, marketingUrl: e.target.value})} 
+                                            placeholder="https://..." 
+                                            className="font-mono text-sm"
+                                        />
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Store Grid */}
+                        <div className="grid lg:grid-cols-2 gap-6">
+                            {/* Apple App Store */}
+                            <Card className="border-t-4 border-t-zinc-800 shadow-md">
+                                <CardHeader className="pb-4 flex flex-row items-center gap-2 border-b border-border/40 bg-muted/10">
+                                    <Apple className="h-5 w-5" />
+                                    <CardTitle className="text-base font-semibold">App Store</CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid gap-5 p-5">
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-xs">
+                                            <Label>Promo Text</Label>
+                                            <span className={`font-mono ${data.promoText?.length > 170 ? "text-destructive font-bold" : "text-muted-foreground"}`}>
+                                                {data.promoText?.length || 0}/170
+                                            </span>
                                         </div>
-                                        <div className="space-y-2">
-                                            <Label>Marketing URL</Label>
-                                            <Input 
-                                                value={data.marketingUrl} 
-                                                onChange={e => setData({...data, marketingUrl: e.target.value})} 
-                                                placeholder="https://..." 
-                                            />
+                                        <Textarea 
+                                            rows={3} 
+                                            value={data.promoText} 
+                                            onChange={e => setData({...data, promoText: e.target.value})}
+                                            className="resize-none" 
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-xs">
+                                            <Label>Description</Label>
+                                            <span className="text-muted-foreground font-mono">{data.description?.length || 0}/4000</span>
                                         </div>
+                                        <Textarea 
+                                            rows={12} 
+                                            className="font-mono text-xs leading-relaxed" 
+                                            value={data.description} 
+                                            onChange={e => setData({...data, description: e.target.value})} 
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Keywords</Label>
+                                        <Input 
+                                            value={data.keywords} 
+                                            onChange={e => setData({...data, keywords: e.target.value})} 
+                                            placeholder="productivity, task, ..." 
+                                        />
                                     </div>
                                 </CardContent>
                             </Card>
 
-                            {/* Store Grid */}
-                            <div className="grid md:grid-cols-2 gap-6">
-                                {/* Apple App Store */}
-                                <Card className="border-t-4 border-t-zinc-800">
-                                    <CardHeader className="pb-4 flex flex-row items-center gap-2 space-y-0">
-                                        <Apple className="h-5 w-5 mb-1" />
-                                        <div className="flex flex-col">
-                                            <CardTitle className="text-base">App Store</CardTitle>
+                            {/* Google Play Store */}
+                            <Card className="border-t-4 border-t-emerald-600 shadow-md">
+                                <CardHeader className="pb-4 flex flex-row items-center gap-2 border-b border-border/40 bg-muted/10">
+                                    <Play className="h-5 w-5 text-emerald-600" />
+                                    <CardTitle className="text-base font-semibold">Google Play</CardTitle>
+                                </CardHeader>
+                                <CardContent className="grid gap-5 p-5">
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-xs">
+                                            <Label>Short Description</Label>
+                                            <span className={`font-mono ${data.shortDescription?.length > 80 ? "text-destructive font-bold" : "text-muted-foreground"}`}>
+                                                {data.shortDescription?.length || 0}/80
+                                            </span>
                                         </div>
-                                    </CardHeader>
-                                    <CardContent className="grid gap-4">
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between text-xs">
-                                                <Label>Promo Text</Label>
-                                                <span className={data.promoText?.length > 170 ? "text-destructive font-bold" : "text-muted-foreground"}>
-                                                    {data.promoText?.length || 0}/170
-                                                </span>
-                                            </div>
-                                            <Textarea 
-                                                rows={3} 
-                                                value={data.promoText} 
-                                                onChange={e => setData({...data, promoText: e.target.value})} 
-                                            />
+                                        <Textarea 
+                                            rows={3} 
+                                            value={data.shortDescription} 
+                                            onChange={e => setData({...data, shortDescription: e.target.value})} 
+                                            className="resize-none"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between text-xs">
+                                            <Label>Full Description</Label>
+                                            <span className="text-muted-foreground font-mono">{data.fullDescription?.length || 0}/4000</span>
                                         </div>
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between text-xs">
-                                                <Label>Description</Label>
-                                                <span className="text-muted-foreground">{data.description?.length || 0}/4000</span>
-                                            </div>
-                                            <Textarea 
-                                                rows={12} 
-                                                className="font-mono text-xs" 
-                                                value={data.description} 
-                                                onChange={e => setData({...data, description: e.target.value})} 
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Keywords</Label>
-                                            <Input 
-                                                value={data.keywords} 
-                                                onChange={e => setData({...data, keywords: e.target.value})} 
-                                                placeholder="productivity, task, ..." 
-                                            />
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
-                                {/* Google Play Store */}
-                                <Card className="border-t-4 border-t-emerald-600">
-                                    <CardHeader className="pb-4 flex flex-row items-center gap-2 space-y-0">
-                                        <Play className="h-5 w-5 mb-1 text-emerald-600" />
-                                        <div className="flex flex-col">
-                                            <CardTitle className="text-base">Google Play</CardTitle>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="grid gap-4">
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between text-xs">
-                                                <Label>Short Description</Label>
-                                                <span className={data.shortDescription?.length > 80 ? "text-destructive font-bold" : "text-muted-foreground"}>
-                                                    {data.shortDescription?.length || 0}/80
-                                                </span>
-                                            </div>
-                                            <Textarea 
-                                                rows={3} 
-                                                value={data.shortDescription} 
-                                                onChange={e => setData({...data, shortDescription: e.target.value})} 
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between text-xs">
-                                                <Label>Full Description</Label>
-                                                <span className="text-muted-foreground">{data.fullDescription?.length || 0}/4000</span>
-                                            </div>
-                                            <Textarea 
-                                                rows={12} 
-                                                className="font-mono text-xs" 
-                                                value={data.fullDescription} 
-                                                onChange={e => setData({...data, fullDescription: e.target.value})} 
-                                            />
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </div>
+                                        <Textarea 
+                                            rows={12} 
+                                            className="font-mono text-xs leading-relaxed" 
+                                            value={data.fullDescription} 
+                                            onChange={e => setData({...data, fullDescription: e.target.value})} 
+                                        />
+                                    </div>
+                                </CardContent>
+                            </Card>
                         </div>
                     </div>
                 </>
@@ -589,11 +540,12 @@ export default function AppGenerator() {
         </div>
 
         {(loading || analyzing || generating) && (
-            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
-                <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center animate-in fade-in duration-300">
+                <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
                 <p className="text-lg font-medium text-foreground animate-pulse">
                     {loading ? 'Saving Changes...' : analyzing ? 'Analyzing Project Structure...' : 'Generating Marketing Copy...'}
                 </p>
+                <p className="text-sm text-muted-foreground mt-2">This may take a moment</p>
             </div>
         )}
     </div>

@@ -1,5 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
-import styles from './style.module.scss';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../ui/card';
+import { Button } from '../../ui/button';
+import { Upload, Image as ImageIcon, Download, Loader2, FileDown, Trash2 } from 'lucide-react';
 
 interface Spec {
     width: number;
@@ -141,7 +143,6 @@ export default function AppResourceCropper() {
             }
 
             // 2. Generate Feature Graphic (1024x500)
-            // Logic: Blur BG + Dim + Center Round Icon
             {
                 const w = 1024;
                 const h = 500;
@@ -155,42 +156,34 @@ export default function AppResourceCropper() {
                     ctx.imageSmoothingQuality = 'high';
 
                     // A. Background (Fill & Blur)
-                    // Calculate fill scale
                     const scale = Math.max(w / sourceImage.width, h / sourceImage.height);
                     const bw = sourceImage.width * scale;
                     const bh = sourceImage.height * scale;
                     const bx = (w - bw) / 2;
                     const by = (h - bh) / 2;
 
-                    // Draw BG
                     ctx.filter = 'blur(30px)';
-                    // Scale slightly up to avoid blur edges showing white
                     ctx.drawImage(sourceImage, bx - 20, by - 20, bw + 40, bh + 40);
-                    ctx.filter = 'none'; // Reset filter
+                    ctx.filter = 'none';
 
-                    // Dimming (Dark Overlay)
+                    // Dimming
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
                     ctx.fillRect(0, 0, w, h);
 
                     // B. Foreground (Center Icon, Rounded)
                     const iconH = 320;
-                    const iconW = (sourceImage.width / sourceImage.height) * iconH; // Keep aspect
-                    // If square source, iconW is 320.
+                    const iconW = (sourceImage.width / sourceImage.height) * iconH;
                     
                     const ix = (w - iconW) / 2;
                     const iy = (h - iconH) / 2;
-
-                    // Radius calculation (iOS style: 22.3% of size)
                     const radius = Math.min(iconW, iconH) * 0.223;
 
                     ctx.save();
-                    // Clip rounded rect
                     ctx.beginPath();
                     if ('roundRect' in ctx) {
                          // @ts-ignore
                          ctx.roundRect(ix, iy, iconW, iconH, radius);
                     } else {
-                        // Fallback for older browsers
                         ctx.rect(ix, iy, iconW, iconH);
                     }
                     ctx.clip();
@@ -225,9 +218,6 @@ export default function AppResourceCropper() {
     const downloadImage = (img: GeneratedImage) => {
         const a = document.createElement('a');
         a.href = img.url;
-        // Construct filename with folder structure if needed, but for single download flat name is often better.
-        // Let's use just the name for simplicity, or we could handle folders if downloading all (zip).
-        // Requirement: "Click to download corresponding".
         a.download = img.name; 
         document.body.appendChild(a);
         a.click();
@@ -235,34 +225,49 @@ export default function AppResourceCropper() {
     };
 
     const downloadAll = async () => {
-        // Simple sequential download for now as we don't have JSZip installed
-        // (and cannot easily add it without permissions).
-        // Browsers might block multiple downloads.
-        // Alerting user.
         if (!confirm("This will attempt to download " + results.length + " files. Continue?")) return;
         
         for (const res of results) {
             downloadImage(res);
-            await new Promise(r => setTimeout(r, 200)); // Delay to help browser cope
+            await new Promise(r => setTimeout(r, 200));
+        }
+    };
+
+    const reset = () => {
+        setSourceImage(null);
+        setSourceFile(null);
+        setResults([]);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
         }
     };
 
     return (
-        <div className={styles.container}>
+        <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Upload Area */}
             <div 
-                className={`${styles.uploadSection} ${isDragging ? styles.dragActive : ''}`}
+                className={`
+                    group relative flex flex-col items-center justify-center p-12 text-center 
+                    border-2 border-dashed rounded-xl transition-all duration-300 cursor-pointer
+                    ${isDragging 
+                        ? 'border-primary bg-primary/5 scale-[1.01]' 
+                        : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30'
+                    }
+                    ${sourceImage ? 'hidden' : 'block'}
+                `}
                 onDrop={onDrop}
                 onDragOver={onDragOver}
                 onDragLeave={onDragLeave}
                 onClick={() => fileInputRef.current?.click()}
             >
-                <div className={styles.icon}>🖼️</div>
-                <div className={styles.text}>
-                    {sourceFile ? sourceFile.name : "Drop App Icon Here"}
+                <div className="w-20 h-20 bg-muted/50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                    <Upload className="w-10 h-10 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
-                <div className={styles.subtext}>
-                    1024x1024 PNG recommended
-                </div>
+                <h3 className="text-xl font-semibold mb-2">Drop App Icon Here</h3>
+                <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+                    Supports PNG, JPG, WEBP. <br/>
+                    <span className="font-medium text-foreground">1024x1024 PNG</span> recommended for best results.
+                </p>
                 <input 
                     type="file" 
                     ref={fileInputRef} 
@@ -272,49 +277,108 @@ export default function AppResourceCropper() {
                 />
             </div>
 
+            {/* Preview & Action Area */}
             {sourceImage && (
-                <div className={styles.previewSection}>
-                    <img src={sourceImage.src} alt="Source" />
-                    <div className={styles.actions}>
-                        <button 
-                            className={`${styles.button} ${styles.primary}`}
-                            onClick={generateImages}
-                            disabled={isProcessing}
-                        >
-                            {isProcessing ? 'Generating...' : 'Generate Resources'}
-                        </button>
-                    </div>
-                </div>
+                <Card className="overflow-hidden border-border/50 shadow-md">
+                    <CardContent className="p-8">
+                        <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
+                            <div className="relative shrink-0">
+                                <div className="absolute inset-0 bg-gradient-to-tr from-black/5 to-transparent rounded-3xl" />
+                                <img 
+                                    src={sourceImage.src} 
+                                    alt="Source" 
+                                    className="w-48 h-48 md:w-64 md:h-64 object-contain rounded-3xl shadow-xl bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgZmlsbD0iI2YwZjBmMCI+PHJlY3Qgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiAvPjxyZWN0IHg9IjEwIiB5PSIxMCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiAvPjwvc3ZnPg==')] bg-white"
+                                />
+                                <div className="absolute -bottom-4 -right-4 bg-background border border-border px-3 py-1 rounded-full text-xs font-mono shadow-sm">
+                                    {sourceImage.width} x {sourceImage.height}
+                                </div>
+                            </div>
+                            
+                            <div className="flex-1 text-center md:text-left space-y-6">
+                                <div>
+                                    <h3 className="text-2xl font-bold mb-2">{sourceFile?.name}</h3>
+                                    <p className="text-muted-foreground">
+                                        Ready to generate {SPECS.length + 1} assets for iOS, Android, and Stores.
+                                    </p>
+                                </div>
+                                
+                                <div className="flex flex-wrap gap-3 justify-center md:justify-start">
+                                    <Button 
+                                        size="lg" 
+                                        onClick={generateImages} 
+                                        disabled={isProcessing}
+                                        className="min-w-[160px]"
+                                    >
+                                        {isProcessing ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                Processing...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <ImageIcon className="w-4 h-4 mr-2" />
+                                                Generate Assets
+                                            </>
+                                        )}
+                                    </Button>
+                                    <Button variant="outline" size="lg" onClick={reset}>
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Clear
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             )}
 
+            {/* Results Grid */}
             {results.length > 0 && (
-                <div className={styles.resultsSection}>
-                    <h2>
-                        Generated Assets
-                        <button className={styles.button} onClick={downloadAll}>
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-2xl font-bold tracking-tight">Generated Assets <span className="text-muted-foreground text-lg font-normal ml-2">({results.length})</span></h2>
+                        <Button onClick={downloadAll} variant="secondary">
+                            <Download className="w-4 h-4 mr-2" />
                             Download All
-                        </button>
-                    </h2>
-                    <div className={styles.resultsGrid}>
+                        </Button>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                         {results.map((res, i) => (
-                            <div key={i} className={styles.resultCard}>
-                                <div className={styles.imageWrapper}>
-                                    <img src={res.url} alt={res.name} />
+                            <Card key={i} className="group overflow-hidden border-border/50 transition-all hover:shadow-lg hover:border-primary/20">
+                                <div className="aspect-square relative p-4 flex items-center justify-center bg-muted/20 group-hover:bg-muted/30 transition-colors">
+                                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgZmlsbD0iI2YwZjBmMCI+PHJlY3Qgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiAvPjxyZWN0IHg9IjEwIiB5PSIxMCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiAvPjwvc3ZnPg==')] opacity-30" />
+                                    <img 
+                                        src={res.url} 
+                                        alt={res.name} 
+                                        className="max-w-full max-h-full object-contain shadow-sm group-hover:scale-105 transition-transform duration-300"
+                                    />
                                 </div>
-                                <div className={styles.info}>
-                                    <div className={styles.name} title={res.name}>{res.name}</div>
-                                    <div className={styles.meta}>
-                                        <span className={styles.badge}>{res.folder}</span>
-                                        <span>{res.width}x{res.height}</span>
+                                <CardContent className="p-3">
+                                    <div className="flex items-start justify-between gap-2 mb-2">
+                                        <div className="min-w-0">
+                                            <p className="font-medium text-xs truncate" title={res.name}>{res.name}</p>
+                                            <p className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                                                {res.width} x {res.height}
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
-                                <button 
-                                    className={styles.button}
-                                    onClick={() => downloadImage(res)}
-                                >
-                                    Download
-                                </button>
-                            </div>
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground">
+                                            {res.folder}
+                                        </span>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            className="h-6 w-6" 
+                                            onClick={() => downloadImage(res)}
+                                            title="Download"
+                                        >
+                                            <FileDown className="w-3 h-3" />
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
                         ))}
                     </div>
                 </div>

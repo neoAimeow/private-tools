@@ -1,17 +1,26 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import TextReflower from '../../components/tools/TextReflower/index.tsx';
+import { ArrowLeft } from 'lucide-react';
 ---
 
 <Layout title="Text Reflower - My Dashboard">
-  <main style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
-    <a href="/" style="display: inline-block; margin-bottom: 2rem; color: var(--text-secondary); text-decoration: none; font-weight: 500; transition: color 0.2s;">
-      &larr; Back to Dashboard
+  <main class="container mx-auto px-4 py-8 max-w-7xl">
+    <a 
+      href="/" 
+      class="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground mb-8 transition-colors group"
+    >
+      <ArrowLeft className="w-4 h-4 mr-1 group-hover:-translate-x-1 transition-transform" />
+      Back to Dashboard
     </a>
     
-    <div style="margin-bottom: 2rem;">
-      <h1 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem; background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Text Reflower</h1>
-      <p style="color: var(--text-secondary); font-size: 1.1rem;">Fix broken lines from PDFs, clean whitespace, and improve readability automatically.</p>
+    <div class="mb-12 space-y-4">
+      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent pb-2">
+        Text Reflower
+      </h1>
+      <p class="text-xl text-muted-foreground max-w-2xl leading-relaxed">
+        Fix broken lines from PDFs, clean whitespace, and improve readability automatically.
+      </p>
     </div>
 
     <TextReflower client:load />

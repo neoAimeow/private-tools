@@ -1,13 +1,28 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import JsonFormatter from '../../components/tools/JsonFormatter/index.tsx';
+import JsonFormatterComponent from '../../components/tools/JsonFormatter/index.tsx';
+import { ArrowLeft } from 'lucide-react';
 ---
 
 <Layout title="JSON Formatter - My Dashboard">
-  <main style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
-    <a href="/" style="display: inline-block; margin-bottom: 1rem; color: #0366d6; text-decoration: none;">&larr; Back to Dashboard</a>
-    <h1>JSON Formatter</h1>
-    <!-- client:load is crucial for React interactivity -->
-    <JsonFormatter client:load />
+  <main class="container mx-auto px-4 py-8 max-w-[1400px]">
+    <a 
+      href="/" 
+      class="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground mb-8 transition-colors group"
+    >
+      <ArrowLeft className="w-4 h-4 mr-1 group-hover:-translate-x-1 transition-transform" />
+      Back to Dashboard
+    </a>
+    
+    <div class="mb-10 space-y-3">
+      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
+        JSON Formatter
+      </h1>
+      <p class="text-lg text-muted-foreground max-w-2xl">
+        Validate, format, and minify your JSON data instantly.
+      </p>
+    </div>
+
+    <JsonFormatterComponent client:load />
   </main>
 </Layout>
