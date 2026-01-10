@@ -174,14 +174,14 @@ export default function AppGenerator() {
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
                 {apps.map(app => (
                     <div key={app.id} onClick={() => handleSelect(app)}
-                        className={`group px-3 py-2.5 rounded-lg flex items-center gap-3 cursor-pointer transition-all ${selectedAppId === app.id ? 'bg-white shadow-sm ring-1 ring-zinc-200' : 'hover:bg-zinc-100/80 text-zinc-500'}`}
+                        className={`group px-3 py-2 rounded-md flex items-center gap-2.5 cursor-pointer transition-all ${selectedAppId === app.id ? 'bg-white shadow-sm ring-1 ring-zinc-200' : 'hover:bg-zinc-100/80 text-zinc-500'}`}
                     >
-                        <div className={`w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold ${selectedAppId === app.id ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-zinc-200 text-zinc-500 group-hover:bg-zinc-300'}`}>
+                        <div className={`w-7 h-7 rounded flex items-center justify-center text-[10px] font-bold ${selectedAppId === app.id ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-zinc-200 text-zinc-500 group-hover:bg-zinc-300'}`}>
                             {app.name?.[0]?.toUpperCase() || '?'}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className={`font-medium truncate ${selectedAppId === app.id ? 'text-zinc-900' : ''}`}>{app.name}</div>
-                            <div className="text-[10px] text-zinc-400 truncate">{app.updatedAt ? new Date(app.updatedAt).toLocaleDateString() : 'New'}</div>
+                            <div className={`text-xs font-medium truncate ${selectedAppId === app.id ? 'text-zinc-900' : ''}`}>{app.name}</div>
+                            <div className="text-[9px] text-zinc-400 truncate">{app.updatedAt ? new Date(app.updatedAt).toLocaleDateString() : 'New'}</div>
                         </div>
                     </div>
                 ))}
