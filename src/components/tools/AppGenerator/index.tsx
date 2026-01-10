@@ -176,18 +176,57 @@ export default function AppGenerator() {
         Generate JSON for Apple/Google stores. App Name: ${data.name}. 
         Return strictly JSON: { "promoText": "...", "description": "...", "keywords": "...", "shortDescription": "...", "fullDescription": "..." }`;
         
+        // Use custom proxy and headers as requested, dynamically built from config
         let baseUrl = config.baseUrl.replace(/\/$/, '');
-        if (!baseUrl.includes('/v1') && !baseUrl.includes('googleapis.com')) baseUrl += '/v1beta';
-
-        const res = await fetch(`${baseUrl}/models/${config.textModel}:generateContent?key=${config.textApiKey}`, {
-             method: 'POST', headers: {'Content-Type': 'application/json'},
-             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        });
-        const json = await res.json();
-        const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!text) throw new Error("No response");
+        // If the user's config doesn't end in /v1beta (or similar), we might need to be careful.
+        // But per instruction "splice from configured url", we trust the user's config.baseUrl 
+        // matches the proxy root (e.g. http://127.0.0.1:8045/v1beta).
         
-        const genData = JSON.parse(text.replace(/```json/g, '').replace(/```/g, '').trim());
+        const targetUrl = `${baseUrl}/models/${config.textModel}:streamGenerateContent?alt=sse`;
+        const apiKey = config.textApiKey;
+
+        const res = await fetch(targetUrl, {
+             method: 'POST', 
+             headers: {
+                 'Content-Type': 'application/json',
+                 'x-goog-api-key': apiKey,
+                 'http-referer': 'https://cherry-ai.com',
+                 'x-title': 'Cherry Studio',
+             },
+             body: JSON.stringify({ 
+                 contents: [{ role: "user", parts: [{ text: prompt }] }],
+                 generationConfig: {}
+             })
+        });
+
+        if (!res.body) throw new Error("No response body");
+        
+        // Handle SSE Stream
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n');
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const dataStr = line.slice(6).trim();
+                    if (dataStr === '[DONE]') continue;
+                    try {
+                        const json = JSON.parse(dataStr);
+                        const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+                        if (text) fullText += text;
+                    } catch (e) { console.error('SSE Parse Error', e); }
+                }
+            }
+        }
+        
+        if (!fullText) throw new Error("No content generated");
+        
+        const genData = JSON.parse(fullText.replace(/```json/g, '').replace(/```/g, '').trim());
         const final = { ...data, ...genData };
         setData(final);
         await updateDoc(doc(db, "solvin-apps", selectedAppId!), final);
