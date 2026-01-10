@@ -4,6 +4,7 @@ import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where
 import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { getGeminiConfig } from '../../../lib/config';
+import { LANGUAGES } from '../../../lib/constants';
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -179,27 +180,32 @@ export default function IdeaFactory() {
       return () => clearTimeout(timer);
   }, [data.name, data.description, data.targetAudience]);
 
-    // Generators
-    const handleGenerateText = async (customPrompt?: string) => {
-        if (!selectedId) return;
-        setGenerating(true);
-        const promptToUse = customPrompt || promptInput;
-        if (!promptToUse) { toast.error("Enter a prompt"); setGenerating(false); return; }
-  
-        const isFeatureList = promptToUse.toLowerCase().includes("feature list") || promptToUse.toLowerCase().includes("gameplay mechanics");
-        
-        const config = getGeminiConfig();
-        let systemContext = `Project Name: ${data.name}
-  Type: ${data.projectType}
-  Platform: ${data.platform}
-  Category: ${data.category}
-  Description: ${data.description}
-  Target Audience: ${data.targetAudience}
-  Current Features/Key Elements: ${(data.features || []).join(', ')}`;
-  
-        if (isFeatureList) {
-            systemContext += `\n\nIMPORTANT: Return a valid JSON ARRAY of strings only. Do not wrap in markdown code blocks. Example: ["Login System", "Map Editor"]`;
-        }
+  // Generators
+  const handleGenerateText = async (customPrompt?: string) => {
+      if (!selectedId) return;
+      setGenerating(true);
+      const promptToUse = customPrompt || promptInput;
+      if (!promptToUse) { toast.error("Enter a prompt"); setGenerating(false); return; }
+
+      const isFeatureList = promptToUse.toLowerCase().includes("feature list") || promptToUse.toLowerCase().includes("gameplay mechanics");
+      
+      const config = getGeminiConfig();
+      const langCode = config.defaultLanguage || 'en-US';
+      const langName = LANGUAGES.find(l => l.code === langCode)?.name || langCode;
+
+      let systemContext = `Project Name: ${data.name}
+Type: ${data.projectType}
+Platform: ${data.platform}
+Category: ${data.category}
+Description: ${data.description}
+Target Audience: ${data.targetAudience}
+Current Features/Key Elements: ${(data.features || []).join(', ')}
+
+CRITICAL INSTRUCTION: You MUST output ONLY in ${langName} (${langCode}). All ideas, descriptions, feature names, and explanations must be written in ${langName}.`;
+
+      if (isFeatureList) {
+          systemContext += `\n\nIMPORTANT: Return a valid JSON ARRAY of strings only. Do not wrap in markdown code blocks. The strings inside the array MUST be in ${langName}. Example: ["${langCode==='zh-CN'?'登录系统':'Login System'}", "${langCode==='zh-CN'?'地图编辑器':'Map Editor'}"]`;
+      }
   
         // Create a temporary ID for the streaming content
         const tempId = Date.now().toString();
@@ -456,7 +462,7 @@ export default function IdeaFactory() {
                         {/* Quick Actions */}
                         {activeTab === 'brainstorm' && (
                             <div className="flex flex-wrap gap-2 justify-center">
-                                {['Generate Feature List', 'Create Marketing Slogans', 'Identify Technical Stack', 'User Persona Analysis'].map(action => (
+                                {['Generate Core Concept', 'Generate Feature List', 'Create Marketing Slogans', 'Identify Technical Stack', 'User Persona Analysis'].map(action => (
                                     <button 
                                         key={action}
                                         onClick={() => handleGenerateText(action)}
@@ -496,8 +502,13 @@ export default function IdeaFactory() {
                                 </div>
                                 <div className="p-5">
                                     {content.type === 'text' ? (
-                                        <div className="prose prose-sm prose-zinc max-w-none whitespace-pre-wrap font-mono text-xs leading-relaxed text-zinc-600">
-                                            {content.result}
+                                        <div className="prose prose-sm prose-zinc max-w-none whitespace-pre-wrap font-mono text-xs leading-relaxed text-zinc-600 min-h-[40px]">
+                                            {content.result ? content.result : (
+                                                <div className="flex items-center gap-2 text-zinc-400 h-full">
+                                                    <Loader2 className="w-4 h-4 animate-spin text-indigo-500"/>
+                                                    <span className="animate-pulse">Thinking...</span>
+                                                </div>
+                                            )}
                                         </div>
                                     ) : content.type === 'feature_list' ? (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -526,14 +537,22 @@ export default function IdeaFactory() {
                                 </div>
                                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                                     {content.type === 'text' && (
-                                        <Button variant="ghost" size="icon" className="h-6 w-6 bg-white border border-zinc-200 shadow-sm"
-                                            onClick={() => {
-                                                navigator.clipboard.writeText(content.result);
-                                                toast.success("Copied!");
-                                            }}
-                                        >
-                                            <Copy className="w-3 h-3 text-zinc-500"/>
-                                        </Button>
+                                        <>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 bg-white border border-zinc-200 shadow-sm"
+                                                onClick={() => handleSetDescription(content.result)}
+                                                title="Set as Project Description"
+                                            >
+                                                <Save className="w-3 h-3 text-zinc-500"/>
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 bg-white border border-zinc-200 shadow-sm"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(content.result);
+                                                    toast.success("Copied!");
+                                                }}
+                                            >
+                                                <Copy className="w-3 h-3 text-zinc-500"/>
+                                            </Button>
+                                        </>
                                     )}
                                     {content.type === 'image' && (
                                          <a href={content.result} download={`idea-asset-${content.id}.png`} target="_blank" rel="noopener noreferrer">
