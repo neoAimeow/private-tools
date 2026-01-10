@@ -4,6 +4,7 @@ import { collection, addDoc, updateDoc, doc, onSnapshot, query, orderBy, getDoc,
 import { ref, getDownloadURL, uploadString } from 'firebase/storage';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { getGeminiConfig } from '../../../lib/config';
+import { toast } from "sonner";
 
 // UI Components - Using standard HTML/Tailwind for cleaner custom layout
 import { Button } from "@/components/ui/button";
@@ -104,7 +105,7 @@ export default function AppGenerator() {
             ...INITIAL_DATA, ownerId: user.uid, name: 'Untitled Project', createdAt: now, updatedAt: now
         });
         handleSelect({ id: docRef.id, ...INITIAL_DATA, name: 'Untitled Project' } as AppData);
-    } catch(e) { alert(e); } finally { setLoading(false); }
+    } catch(e) { toast.error(e instanceof Error ? e.message : String(e)); } finally { setLoading(false); }
   };
 
   const handleSave = async () => {
@@ -112,14 +113,14 @@ export default function AppGenerator() {
       setLoading(true);
       try {
           await updateDoc(doc(db, "solvin-apps", selectedAppId), { ...data, updatedAt: new Date().toISOString() });
-      } catch (e) { alert(e); } finally { setLoading(false); }
+      } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); } finally { setLoading(false); }
   };
 
 
   const fetchRepos = async () => {
       const config = getGeminiConfig();
       if (!config.githubToken) {
-          alert("Please set your GitHub Token in Settings first.");
+          toast.error("Please set your GitHub Token in Settings first.");
           return;
       }
       setLoadingRepos(true);
@@ -133,7 +134,7 @@ export default function AppGenerator() {
           if (json.error) throw new Error(json.error);
           setRepos(json.repos || []);
       } catch (e) {
-          alert((e as Error).message);
+          toast.error((e as Error).message);
           setRepoModalOpen(false);
       } finally {
           setLoadingRepos(false);
@@ -148,7 +149,7 @@ export default function AppGenerator() {
 
   // Logic functions (Analyze/Generate) remain largely same, just calling them cleaner
   const analyzeProject = async () => {
-    if (!data.localPath) { alert('Please enter a Repo Path'); return null; }
+    if (!data.localPath) { toast.error('Please enter a Repo Path'); return null; }
     setAnalyzing(true);
     try {
         const config = getGeminiConfig();
@@ -163,7 +164,7 @@ export default function AppGenerator() {
              updateDoc(doc(db, "solvin-apps", selectedAppId!), { name: newName });
         }
         return ctx;
-    } catch(e) { alert(e); return null; } finally { setAnalyzing(false); }
+    } catch(e) { toast.error(e instanceof Error ? e.message : String(e)); return null; } finally { setAnalyzing(false); }
   };
 
   const generateCopy = async () => {
@@ -236,7 +237,7 @@ export default function AppGenerator() {
         const final = { ...data, ...genData };
         setData(final);
         await updateDoc(doc(db, "solvin-apps", selectedAppId!), final);
-    } catch(e) { alert(e); } finally { setGenerating(false); }
+    } catch(e) { toast.error(e instanceof Error ? e.message : String(e)); } finally { setGenerating(false); }
   };
 
   if (authLoading) return <div className="h-full flex items-center justify-center"><Loader2 className="animate-spin opacity-50" /></div>;

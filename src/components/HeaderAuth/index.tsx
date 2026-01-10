@@ -3,6 +3,7 @@ import { auth, googleProvider } from '../../lib/firebase';
 import { signInWithPopup, signOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,7 +31,7 @@ export default function HeaderAuth() {
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
       console.error("Login failed", error);
-      alert("Login failed");
+      toast.error("Login failed: " + (error instanceof Error ? error.message : String(error)));
     }
   };
 

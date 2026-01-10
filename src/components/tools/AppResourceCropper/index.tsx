@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Button } from '../../ui/button';
 import { Upload, Image as ImageIcon, Download, Loader2, FileDown, Trash2, Smartphone } from 'lucide-react';
+import { toast } from "sonner";
 
 interface Spec { width: number; height: number; name: string; folder: string; }
 
@@ -80,7 +81,7 @@ export default function AppResourceCropper() {
                 if (fBlob) newResults.push({ width: 1024, height: 500, name: 'feature_graphic.png', folder: 'store', url: URL.createObjectURL(fBlob), blob: fBlob });
             }
             setResults(newResults);
-        } catch (e) { alert(e); } finally { setIsProcessing(false); }
+        } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); } finally { setIsProcessing(false); }
     };
 
     const downloadImage = (img: GeneratedImage) => {
