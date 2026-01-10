@@ -174,6 +174,12 @@ export default function AppGenerator() {
         const config = getGeminiConfig();
         const prompt = `You are an expert ASO Copywriter. Analyze this project: ${JSON.stringify(ctx)}. 
         Generate JSON for Apple/Google stores. App Name: ${data.name}. 
+        
+        STRICTLY adhere to these character limits (count includes spaces, MUST be less than or equal to limit):
+        - promoText: Max 170 characters (iOS Promotional Text).
+        - keywords: Max 100 characters (Comma separated).
+        - shortDescription: Max 80 characters (Android Short Description).
+        
         Return strictly JSON: { "promoText": "...", "description": "...", "keywords": "...", "shortDescription": "...", "fullDescription": "..." }`;
         
         // Use custom proxy and headers as requested, dynamically built from config
