@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db, storage, auth } from '../../../lib/firebase';
-import { collection, addDoc, updateDoc, doc, onSnapshot, query, orderBy, getDoc, where } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, getDoc, where } from 'firebase/firestore';
 import { ref, getDownloadURL, uploadString } from 'firebase/storage';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { getGeminiConfig } from '../../../lib/config';
@@ -9,9 +9,42 @@ import { toast } from "sonner";
 // UI Components - Using standard HTML/Tailwind for cleaner custom layout
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Loader2, Sparkles, Save, Plus, Search, Smartphone, Apple, Play, Github, LayoutTemplate, Lock, BookOpen, Star } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Loader2, Sparkles, Save, Plus, Search, Smartphone, Apple, Play, Github, LayoutTemplate, Lock, BookOpen, Star, Globe, ChevronDown, Trash2 } from "lucide-react";
 
 // ... existing code ...
+
+const LANGUAGES = [
+  { code: 'en-US', name: 'English (US)', flag: '🇺🇸' },
+  { code: 'zh-CN', name: 'Chinese (Simplified)', flag: '🇨🇳' },
+  { code: 'zh-TW', name: 'Chinese (Traditional)', flag: '🇹🇼' },
+  { code: 'ja-JP', name: 'Japanese', flag: '🇯🇵' },
+  { code: 'ko-KR', name: 'Korean', flag: '🇰🇷' },
+  { code: 'es-ES', name: 'Spanish', flag: '🇪🇸' },
+  { code: 'fr-FR', name: 'French', flag: '🇫🇷' },
+  { code: 'de-DE', name: 'German', flag: '🇩🇪' },
+  { code: 'it-IT', name: 'Italian', flag: '🇮🇹' },
+  { code: 'pt-BR', name: 'Portuguese (Brazil)', flag: '🇧🇷' },
+  { code: 'ru-RU', name: 'Russian', flag: '🇷🇺' },
+  { code: 'ar', name: 'Arabic', flag: '🇸🇦' },
+  { code: 'hi', name: 'Hindi', flag: '🇮🇳' },
+  { code: 'id', name: 'Indonesian', flag: '🇮🇩' },
+  { code: 'th', name: 'Thai', flag: '🇹🇭' },
+  { code: 'vi', name: 'Vietnamese', flag: '🇻🇳' },
+  { code: 'tr', name: 'Turkish', flag: '🇹🇷' },
+  { code: 'nl', name: 'Dutch', flag: '🇳🇱' },
+  { code: 'pl', name: 'Polish', flag: '🇵🇱' },
+  { code: 'sv', name: 'Swedish', flag: '🇸🇪' },
+  { code: 'da', name: 'Danish', flag: '🇩🇰' },
+  { code: 'fi', name: 'Finnish', flag: '🇫🇮' }
+];
+
+interface AppContent {
+  promoText: string;
+  keywords: string;
+  shortDescription: string;
+  fullDescription: string;
+}
 
 interface AppData {
   id?: string;
@@ -25,6 +58,7 @@ interface AppData {
   keywords: string;
   shortDescription: string;
   fullDescription: string;
+  localizations?: { [key: string]: AppContent };
   updatedAt?: string;
   createdAt?: string;
 }
@@ -47,9 +81,50 @@ export default function AppGenerator() {
   const [analyzing, setAnalyzing] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [selectedLang, setSelectedLang] = useState('en-US');
+
+  // Helper to get current content
+  const getContent = (lang: string): AppContent => {
+      if (data.localizations && data.localizations[lang]) {
+          return data.localizations[lang];
+      }
+      // Fallback for en-US legacy data
+      if (lang === 'en-US') {
+          return {
+              promoText: data.promoText || '',
+              keywords: data.keywords || '',
+              shortDescription: data.shortDescription || '',
+              fullDescription: data.description || data.fullDescription || ''
+          };
+      }
+      return { promoText: '', keywords: '', shortDescription: '', fullDescription: '' };
+  };
+
+  const updateContent = (lang: string, field: keyof AppContent, value: string) => {
+      const currentLocs = data.localizations || {};
+      const currentLangContent = getContent(lang); 
+      
+      const newLocs = {
+          ...currentLocs,
+          [lang]: {
+              ...currentLangContent,
+              [field]: value
+          }
+      };
+
+      let updates: any = { localizations: newLocs };
+      // Sync en-US to root fields for backward compatibility
+      if (lang === 'en-US') {
+          if (field === 'fullDescription') updates['description'] = value;
+          updates[field] = value;
+      }
+      
+      setData({ ...data, ...updates });
+  };
 
   // Repo Selection State
   const [repoModalOpen, setRepoModalOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [repos, setRepos] = useState<any[]>([]);
   const [loadingRepos, setLoadingRepos] = useState(false);
 
@@ -109,6 +184,29 @@ export default function AppGenerator() {
       try {
           await updateDoc(doc(db, "solvin-apps", selectedAppId), { ...data, updatedAt: new Date().toISOString() });
       } catch (e) { alert(e); } finally { setLoading(false); }
+  };
+
+  const handleDelete = async () => {
+      if (!selectedAppId) return;
+      setLoading(true);
+      try {
+          await deleteDoc(doc(db, "solvin-apps", selectedAppId));
+          
+          // Clear selection
+          setSelectedAppId(null);
+          setData(INITIAL_DATA);
+          const url = new URL(window.location.href);
+          url.searchParams.delete('id');
+          window.history.pushState({}, '', url);
+          
+          setDeleteDialogOpen(false);
+          toast.success("Project deleted successfully");
+      } catch (e) { 
+          toast.error("Failed to delete project"); 
+          console.error(e);
+      } finally { 
+          setLoading(false); 
+      }
   };
 
 
@@ -204,21 +302,24 @@ export default function AppGenerator() {
     try {
         const config = getGeminiConfig();
         const prompt = `You are an expert ASO Copywriter. Analyze this project: ${JSON.stringify(ctx)}. 
-        Generate JSON for Apple/Google stores. App Name: ${currentApp.name}. 
+        Generate App Store optimization content for the following languages: 
+        ${LANGUAGES.map(l => `${l.name} (${l.code})`).join(', ')}.
         
-        STRICTLY adhere to these character limits (count includes spaces, MUST be less than or equal to limit):
-        - promoText: Max 170 characters (iOS Promotional Text).
-        - keywords: Max 100 characters (Comma separated).
-        - shortDescription: Max 80 characters (Android Short Description).
+        App Name: ${currentApp.name}. 
         
-        Return strictly JSON: { "promoText": "...", "description": "...", "keywords": "...", "shortDescription": "...", "fullDescription": "..." }`;
+        For EACH language, strictly adhere to these limits:
+        - promoText: Max 170 chars.
+        - keywords: Max 100 chars (Comma separated).
+        - shortDescription: Max 80 chars.
         
-        // Use custom proxy and headers as requested, dynamically built from config
+        Return strictly a JSON object keyed by language code (e.g., "en-US", "zh-CN"):
+        {
+          "en-US": { "promoText": "...", "keywords": "...", "shortDescription": "...", "fullDescription": "..." },
+          "zh-CN": { ... },
+          ...
+        }`;
+        
         let baseUrl = config.baseUrl.replace(/\/$/, '');
-        // If the user's config doesn't end in /v1beta (or similar), we might need to be careful.
-        // But per instruction "splice from configured url", we trust the user's config.baseUrl 
-        // matches the proxy root (e.g. http://127.0.0.1:8045/v1beta).
-        
         const targetUrl = `${baseUrl}/models/${config.textModel}:streamGenerateContent?alt=sse`;
         const apiKey = config.textApiKey;
 
@@ -232,13 +333,12 @@ export default function AppGenerator() {
              },
              body: JSON.stringify({ 
                  contents: [{ role: "user", parts: [{ text: prompt }] }],
-                 generationConfig: {}
+                 generationConfig: { response_mime_type: "application/json" }
              })
         });
 
         if (!res.body) throw new Error("No response body");
         
-        // Handle SSE Stream
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let fullText = '';
@@ -264,7 +364,25 @@ export default function AppGenerator() {
         if (!fullText) throw new Error("No content generated");
         
         const genData = JSON.parse(fullText.replace(/```json/g, '').replace(/```/g, '').trim());
-        const final = { ...currentApp, ...genData };
+        
+        const newLocalizations = { ...(currentApp.localizations || {}), ...genData };
+        
+        // Sync en-US to root fields
+        const rootUpdates: any = {};
+        if (genData['en-US']) {
+            const en = genData['en-US'];
+            rootUpdates.promoText = en.promoText;
+            rootUpdates.keywords = en.keywords;
+            rootUpdates.shortDescription = en.shortDescription;
+            rootUpdates.description = en.fullDescription;
+            rootUpdates.fullDescription = en.fullDescription;
+        }
+
+        const final = { 
+            ...currentApp, 
+            ...rootUpdates,
+            localizations: newLocalizations 
+        };
         
         if (!targetApp) setData(final);
         if (appId) await updateDoc(doc(db, "solvin-apps", appId), final);
@@ -325,13 +443,37 @@ export default function AppGenerator() {
                         {data.localPath && <a href={`https://github.com/${data.localPath}`} target="_blank" className="text-zinc-400 hover:text-zinc-600"><Github className="w-4 h-4"/></a>}
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={generateCopy} disabled={analyzing||generating} className="h-8 text-xs gap-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-8 gap-2 border-zinc-200 text-zinc-600">
+                                    <Globe className="w-3 h-3"/>
+                                    {LANGUAGES.find(l => l.code === selectedLang)?.name || selectedLang}
+                                    <ChevronDown className="w-3 h-3 opacity-50"/>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 max-h-80 overflow-y-auto">
+                                {LANGUAGES.map(lang => (
+                                    <DropdownMenuItem key={lang.code} onClick={() => setSelectedLang(lang.code)} className="gap-2 cursor-pointer">
+                                        <span className="text-base">{lang.flag}</span>
+                                        <span>{lang.name}</span>
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <div className="w-px h-4 bg-zinc-200 mx-1"></div>
+
+                        <Button variant="outline" size="sm" onClick={() => generateCopy()} disabled={analyzing||generating} className="h-8 text-xs gap-2 border-indigo-100 text-indigo-600 hover:bg-indigo-50">
                             {analyzing||generating ? <Loader2 className="w-3 h-3 animate-spin"/> : <Sparkles className="w-3 h-3"/>}
                             {analyzing ? 'Scanning...' : generating ? 'Writing...' : 'AI Generate'}
                         </Button>
                         <Button size="sm" onClick={handleSave} disabled={loading} className="h-8 text-xs gap-2 bg-zinc-900 text-white hover:bg-zinc-800">
                             {loading ? <Loader2 className="w-3 h-3 animate-spin"/> : <Save className="w-3 h-3"/>}
                             Save
+                        </Button>
+                        <div className="w-px h-4 bg-zinc-200 mx-1"></div>
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteDialogOpen(true)} disabled={loading} className="h-8 w-8 text-zinc-400 hover:text-red-600 hover:bg-red-50">
+                            <Trash2 className="w-4 h-4"/>
                         </Button>
                     </div>
                 </div>
@@ -386,29 +528,31 @@ export default function AppGenerator() {
                                 <h3 className="text-sm font-semibold text-zinc-900 flex items-center gap-2">
                                     <Apple className="w-4 h-4 text-zinc-900"/> iOS App Store
                                 </h3>
-                                <span className="text-[10px] bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded-full font-mono">EN-US</span>
+                                <span className="text-[10px] bg-zinc-100 text-zinc-500 px-2 py-0.5 rounded-full font-mono flex items-center gap-1">
+                                    {LANGUAGES.find(l => l.code === selectedLang)?.flag} {selectedLang}
+                                </span>
                             </div>
                             
                             <div className="space-y-4">
                                 <div className="space-y-1.5">
                                     <div className="flex justify-between px-1">
                                         <label className="text-xs font-medium text-zinc-500">Subtitle / Promo Text</label>
-                                        <span className={`text-[10px] ${data.promoText.length > 170 ? 'text-red-500' : 'text-zinc-300'}`}>{data.promoText.length}/170</span>
+                                        <span className={`text-[10px] ${getContent(selectedLang).promoText.length > 170 ? 'text-red-500' : 'text-zinc-300'}`}>{getContent(selectedLang).promoText.length}/170</span>
                                     </div>
-                                    <input value={data.promoText} onChange={e=>setData({...data, promoText: e.target.value})} 
+                                    <input value={getContent(selectedLang).promoText} onChange={e=>updateContent(selectedLang, 'promoText', e.target.value)} 
                                         className="w-full bg-white border border-zinc-200 rounded-lg px-3 py-2 text-zinc-700 focus:border-indigo-500 focus:ring-0 transition-all shadow-sm placeholder:text-zinc-300" />
                                 </div>
                                 <div className="space-y-1.5">
                                     <div className="flex justify-between px-1">
                                         <label className="text-xs font-medium text-zinc-500">Keywords</label>
-                                        <span className={`text-[10px] ${data.keywords.length > 100 ? 'text-red-500' : 'text-zinc-300'}`}>{data.keywords.length}/100</span>
+                                        <span className={`text-[10px] ${getContent(selectedLang).keywords.length > 100 ? 'text-red-500' : 'text-zinc-300'}`}>{getContent(selectedLang).keywords.length}/100</span>
                                     </div>
-                                    <input value={data.keywords} onChange={e=>setData({...data, keywords: e.target.value})} 
+                                    <input value={getContent(selectedLang).keywords} onChange={e=>updateContent(selectedLang, 'keywords', e.target.value)} 
                                         className="w-full bg-white border border-zinc-200 rounded-lg px-3 py-2 text-zinc-700 focus:border-indigo-500 focus:ring-0 transition-all shadow-sm placeholder:text-zinc-300" />
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-medium text-zinc-500 ml-1">Description</label>
-                                    <textarea value={data.description} onChange={e=>setData({...data, description: e.target.value})} rows={8}
+                                    <textarea value={getContent(selectedLang).fullDescription} onChange={e=>updateContent(selectedLang, 'fullDescription', e.target.value)} rows={8}
                                         className="w-full bg-white border border-zinc-200 rounded-lg px-3 py-2 text-zinc-700 text-xs leading-relaxed focus:border-indigo-500 focus:ring-0 transition-all shadow-sm resize-none placeholder:text-zinc-300" />
                                 </div>
                             </div>
@@ -422,21 +566,23 @@ export default function AppGenerator() {
                                 <h3 className="text-sm font-semibold text-zinc-900 flex items-center gap-2">
                                     <Play className="w-4 h-4 text-emerald-600"/> Google Play
                                 </h3>
-                                <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-mono">Main Store Listing</span>
+                                <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-mono flex items-center gap-1">
+                                    {LANGUAGES.find(l => l.code === selectedLang)?.flag} {selectedLang}
+                                </span>
                             </div>
 
                             <div className="space-y-4">
                                 <div className="space-y-1.5">
                                     <div className="flex justify-between px-1">
                                         <label className="text-xs font-medium text-zinc-500">Short Description</label>
-                                        <span className={`text-[10px] ${data.shortDescription.length > 80 ? 'text-red-500' : 'text-zinc-300'}`}>{data.shortDescription.length}/80</span>
+                                        <span className={`text-[10px] ${getContent(selectedLang).shortDescription.length > 80 ? 'text-red-500' : 'text-zinc-300'}`}>{getContent(selectedLang).shortDescription.length}/80</span>
                                     </div>
-                                    <input value={data.shortDescription} onChange={e=>setData({...data, shortDescription: e.target.value})} 
+                                    <input value={getContent(selectedLang).shortDescription} onChange={e=>updateContent(selectedLang, 'shortDescription', e.target.value)} 
                                         className="w-full bg-white border border-zinc-200 rounded-lg px-3 py-2 text-zinc-700 focus:border-emerald-500 focus:ring-0 transition-all shadow-sm placeholder:text-zinc-300" />
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-medium text-zinc-500 ml-1">Full Description</label>
-                                    <textarea value={data.fullDescription} onChange={e=>setData({...data, fullDescription: e.target.value})} rows={8}
+                                    <textarea value={getContent(selectedLang).fullDescription} onChange={e=>updateContent(selectedLang, 'fullDescription', e.target.value)} rows={8}
                                         className="w-full bg-white border border-zinc-200 rounded-lg px-3 py-2 text-zinc-700 text-xs leading-relaxed focus:border-emerald-500 focus:ring-0 transition-all shadow-sm resize-none placeholder:text-zinc-300" />
                                 </div>
                             </div>
@@ -448,6 +594,27 @@ export default function AppGenerator() {
                 </>
             )}
         </div>
+
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Delete Project?</DialogTitle>
+                    <DialogDescription>
+                        Are you sure you want to delete <span className="font-semibold text-zinc-900">{data.name}</span>? 
+                        This action cannot be undone.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="flex justify-end gap-2 mt-4">
+                    <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={loading}>
+                        Cancel
+                    </Button>
+                    <Button variant="destructive" onClick={handleDelete} disabled={loading} className="bg-red-600 hover:bg-red-700">
+                        {loading && <Loader2 className="w-3 h-3 mr-2 animate-spin"/>}
+                        Delete Project
+                    </Button>
+                </div>
+            </DialogContent>
+        </Dialog>
 
         <Dialog open={repoModalOpen} onOpenChange={setRepoModalOpen}>
             <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
