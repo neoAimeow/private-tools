@@ -136,40 +136,75 @@ export default function AppGenerator() {
       }
   };
 
-  const handleSelectRepo = (full_name: string) => {
-      setData({ ...data, localPath: full_name });
-      setRepoModalOpen(false);
+  const handleSelectRepo = async (repo: any) => {
+      if (isCreating) {
+          setRepoModalOpen(false);
+          setLoading(true);
+          try {
+             const now = new Date().toISOString();
+             const newApp = {
+                 ...INITIAL_DATA,
+                 ownerId: user?.uid,
+                 name: repo.name || 'Untitled Project',
+                 localPath: repo.full_name,
+                 createdAt: now,
+                 updatedAt: now
+             };
+             
+             const docRef = await addDoc(collection(db, "solvin-apps"), newApp as any);
+             const appWithId = { ...newApp, id: docRef.id } as AppData;
+             
+             handleSelect(appWithId);
+             
+             // Trigger auto-generation
+             await generateCopy(appWithId);
+             
+          } catch(e) { alert(e); } finally { setLoading(false); setIsCreating(false); }
+      } else {
+          setData({ ...data, localPath: repo.full_name });
+          setRepoModalOpen(false);
+      }
   };
 
 
   // Logic functions (Analyze/Generate) remain largely same, just calling them cleaner
-  const analyzeProject = async () => {
-    if (!data.localPath) { toast.error('Please enter a Repo Path'); return null; }
-    setAnalyzing(true);
+  const analyzeProject = async (targetApp?: AppData) => {
+    const currentApp = targetApp || data;
+    const appId = targetApp?.id || selectedAppId;
+
+    if (!currentApp.localPath) { toast.error('Please enter a Repo Path'); return null; }
+    
+    if (!targetApp) setAnalyzing(true);
     try {
         const config = getGeminiConfig();
         const res = await fetch('/api/analyze-project', {
-            method: 'POST', body: JSON.stringify({ projectPath: data.localPath, githubToken: config.githubToken })
+            method: 'POST', body: JSON.stringify({ projectPath: currentApp.localPath, githubToken: config.githubToken })
         });
         const ctx = await res.json();
         if (ctx.error) throw new Error(ctx.error);
-        if (!data.name && ctx.packageJson?.name) {
+        if ((!currentApp.name || currentApp.name === 'Untitled Project') && ctx.packageJson?.name) {
              const newName = ctx.packageJson.name;
-             setData(p => ({...p, name: newName}));
-             updateDoc(doc(db, "solvin-apps", selectedAppId!), { name: newName });
+             if (!targetApp) setData(p => ({...p, name: newName}));
+             if (appId) updateDoc(doc(db, "solvin-apps", appId), { name: newName });
+             // Update in memory for chained calls
+             currentApp.name = newName;
         }
         return ctx;
-    } catch(e) { toast.error(e instanceof Error ? e.message : String(e)); return null; } finally { setAnalyzing(false); }
+    } catch(e) { toast.error(e instanceof Error ? e.message : String(e)); return null; } finally { if (!targetApp) setAnalyzing(false); }
   };
 
-  const generateCopy = async () => {
-    const ctx = await analyzeProject();
+  const generateCopy = async (targetApp?: AppData) => {
+    const currentApp = targetApp || data;
+    const appId = targetApp?.id || selectedAppId;
+
+    const ctx = await analyzeProject(currentApp);
     if (!ctx) return;
-    setGenerating(true);
+    
+    if (!targetApp) setGenerating(true);
     try {
         const config = getGeminiConfig();
         const prompt = `You are an expert ASO Copywriter. Analyze this project: ${JSON.stringify(ctx)}. 
-        Generate JSON for Apple/Google stores. App Name: ${data.name}. 
+        Generate JSON for Apple/Google stores. App Name: ${currentApp.name}. 
         
         STRICTLY adhere to these character limits (count includes spaces, MUST be less than or equal to limit):
         - promoText: Max 170 characters (iOS Promotional Text).
@@ -229,10 +264,14 @@ export default function AppGenerator() {
         if (!fullText) throw new Error("No content generated");
         
         const genData = JSON.parse(fullText.replace(/```json/g, '').replace(/```/g, '').trim());
-        const final = { ...data, ...genData };
-        setData(final);
-        await updateDoc(doc(db, "solvin-apps", selectedAppId!), final);
-    } catch(e) { toast.error(e instanceof Error ? e.message : String(e)); } finally { setGenerating(false); }
+        const final = { ...currentApp, ...genData };
+        
+        if (!targetApp) setData(final);
+        if (appId) await updateDoc(doc(db, "solvin-apps", appId), final);
+        
+        if (targetApp) toast.success("Auto-generation complete!");
+
+    } catch(e) { alert(e); } finally { if (!targetApp) setGenerating(false); }
   };
 
   if (authLoading) return <div className="h-full flex items-center justify-center"><Loader2 className="animate-spin opacity-50" /></div>;
@@ -425,7 +464,7 @@ export default function AppGenerator() {
                     ) : (
                         <div className="grid grid-cols-1 gap-2 py-2">
                             {repos.map((repo) => (
-                                <div key={repo.id} onClick={() => handleSelectRepo(repo.full_name)}
+                                <div key={repo.id} onClick={() => handleSelectRepo(repo)}
                                     className="flex items-center justify-between p-3 rounded-lg border border-zinc-100 hover:bg-zinc-50 hover:border-indigo-200 cursor-pointer transition-all group">
                                     <div className="flex items-center gap-3">
                                         {repo.private ? <Lock className="w-4 h-4 text-zinc-400"/> : <BookOpen className="w-4 h-4 text-zinc-400"/>}
