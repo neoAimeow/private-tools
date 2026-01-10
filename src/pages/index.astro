@@ -27,18 +27,19 @@ const quickLinks = [
 ---
 
 <Layout title="Dashboard">
-  <main class="container mx-auto px-4 pb-32 max-w-[1600px] relative z-10">
+  {/* Increased max-width for wider layout */}
+  <main class="container mx-auto px-6 pb-32 max-w-[1800px] relative z-10">
     
-    {/* Header - Compact */}
+    {/* Header */}
     <header class="flex items-center justify-between py-5 mb-8 animate-fade-in border-b border-zinc-100/50">
-      <div class="flex items-center gap-2.5 select-none group cursor-pointer">
-        <div class="relative w-8 h-8">
+      <div class="flex items-center gap-3 select-none group cursor-pointer">
+        <div class="relative w-9 h-9">
           <div class="absolute inset-0 bg-indigo-500 rounded-lg rotate-3 opacity-20 group-hover:rotate-6 transition-transform"></div>
           <div class="absolute inset-0 bg-zinc-900 text-white rounded-lg flex items-center justify-center font-bold text-base shadow-lg group-hover:-translate-y-0.5 transition-transform">
              M
           </div>
         </div>
-        <span class="font-bold text-zinc-800 tracking-tight text-base group-hover:text-indigo-600 transition-colors">My Space</span>
+        <span class="font-bold text-zinc-800 tracking-tight text-lg group-hover:text-indigo-600 transition-colors">My Space</span>
       </div>
       <div class="flex items-center gap-3 bg-white/50 backdrop-blur-md p-1 rounded-full border border-zinc-200/50 shadow-sm">
          <div class="scale-90 flex items-center gap-2">
@@ -49,30 +50,30 @@ const quickLinks = [
       </div>
     </header>
 
-    {/* Hero Section - Compact */}
+    {/* Hero Section */}
     <div class="relative flex flex-col items-center justify-center text-center mb-16 animate-slide-up">
       {/* Search Bar - Main Focus */}
-      <div class="relative w-full max-w-lg mx-auto group z-20 mb-6">
-        <div class="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-xl opacity-10 blur transition duration-500 group-focus-within:opacity-30 group-focus-within:blur-md"></div>
-        <div class="relative flex items-center bg-white/80 backdrop-blur-xl rounded-xl shadow-lg shadow-indigo-500/5 border border-white/50 ring-1 ring-zinc-200/50 transition-all group-focus-within:ring-indigo-500/50 group-focus-within:bg-white">
-          <Search class="ml-4 w-4 h-4 text-zinc-400 group-focus-within:text-indigo-500 transition-colors" />
+      <div class="relative w-full max-w-2xl mx-auto group z-20 mb-6">
+        <div class="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl opacity-10 blur transition duration-500 group-focus-within:opacity-30 group-focus-within:blur-md"></div>
+        <div class="relative flex items-center bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl shadow-indigo-500/5 border border-white/50 ring-1 ring-zinc-200/50 transition-all group-focus-within:ring-indigo-500/50 group-focus-within:bg-white">
+          <Search class="ml-5 w-5 h-5 text-zinc-400 group-focus-within:text-indigo-500 transition-colors" />
           <input 
             type="text" 
             id="search-input" 
             placeholder="Search tools..." 
             autocomplete="off" 
-            class="w-full bg-transparent border-0 rounded-xl px-3 py-3 text-sm text-zinc-800 placeholder:text-zinc-400 focus:ring-0 focus:outline-none"
+            class="w-full bg-transparent border-0 rounded-2xl px-4 py-4 text-base text-zinc-800 placeholder:text-zinc-400 focus:ring-0 focus:outline-none"
           />
-          <div class="mr-3 hidden sm:flex h-6 select-none items-center gap-1 rounded bg-zinc-100 px-1.5 font-mono text-[10px] font-bold text-zinc-500 border border-zinc-200">
-            <Command class="w-2.5 h-2.5" /> /
+          <div class="mr-4 hidden sm:flex h-7 select-none items-center gap-1.5 rounded-lg bg-zinc-100 px-2 font-mono text-[10px] font-bold text-zinc-500 border border-zinc-200">
+            <Command class="w-3 h-3" /> /
           </div>
         </div>
       </div>
 
-      {/* Quick Chips - Small Row */}
-      <div class="flex flex-wrap justify-center gap-2 animate-fade-in opacity-80" style={{animationDelay: '0.1s'}}>
+      {/* Quick Chips */}
+      <div class="flex flex-wrap justify-center gap-2.5 animate-fade-in opacity-90" style={{animationDelay: '0.1s'}}>
         {quickLinks.map(link => (
-           <a href={link.url} class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-zinc-200 rounded-md text-[11px] font-medium text-zinc-500 hover:border-indigo-300 hover:text-indigo-600 hover:shadow-sm transition-all">
+           <a href={link.url} class="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-zinc-200 rounded-lg text-xs font-medium text-zinc-600 hover:border-indigo-300 hover:text-indigo-600 hover:shadow-sm transition-all hover:-translate-y-0.5">
               <span>{link.icon}</span> {link.name}
            </a>
         ))}
@@ -80,21 +81,29 @@ const quickLinks = [
     </div>
 
     {/* Content Grid */}
-    <div id="content-wrapper" class="space-y-10">
+    <div id="content-wrapper" class="space-y-12">
       {data.map((cat, index) => (
         <section 
           class="category-section animate-slide-up fill-mode-backwards" 
           style={`animation-delay: ${0.2 + index * 0.05}ms`} 
           data-category={cat.category.toLowerCase()}
         >
-          <div class="flex items-center gap-3 mb-3 border-b border-zinc-100 pb-2">
-            <h2 class="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+          <div class="flex items-center gap-3 mb-4 border-b border-zinc-100 pb-2">
+            <h2 class="text-sm font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
               {cat.category}
             </h2>
           </div>
           
-          {/* High Density Grid: 2 col mobile, 3 col tablet, 4 col desktop, 5 col XL */}
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
+          {/* 
+            Ultra-Wide Grid System:
+            Mobile: 1 col
+            Tablet (sm): 2 col
+            Laptop (lg): 3 col
+            Desktop (xl): 4 col
+            Wide (2xl): 5 col
+            Ultra Wide (min-1800px): 6 col
+          */}
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 min-[1800px]:grid-cols-6 gap-4">
             {cat.links.map((link) => (
               <div class="card-wrapper" data-keywords={`${link.title} ${link.desc}`.toLowerCase()}>
                 <NavCard {...link} />
